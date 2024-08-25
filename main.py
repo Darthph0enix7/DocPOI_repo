@@ -31,6 +31,7 @@ from pydub.playback import play
 import sounddevice as sd
 from scipy.io.wavfile import write
 import gradio as gr
+import tempfile
 
 # PyMuPDF
 import fitz  
@@ -429,8 +430,9 @@ class TTSStreamer:
                     break
                 playback_events[chunk_index].wait()
                 if audio_buffer[chunk_index] is not None:
-                    self.play_audio_segment(audio_buffer[chunk_index])
-                    temp_output_file = f'temp_output_{chunk_index}.wav'
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+                        temp_output_file = temp_file.name
+                    self.play_audio_segment(audio_buffer[chunk_index], temp_output_file)
                     if os.path.exists(temp_output_file):
                         os.remove(temp_output_file)
 
@@ -459,8 +461,9 @@ class TTSStreamer:
             if os.path.exists(temp_output_file):
                 os.remove(temp_output_file)
 
-    def play_audio_segment(self, audio_segment):
-        play(audio_segment)
+    def play_audio_segment(self, audio_segment, temp_output_file):
+        audio_segment.export(temp_output_file, format="wav")
+        play(AudioSegment.from_wav(temp_output_file))
 
 class DocumentAssistant:
     def __init__(self, model_name, temperature=0.9):
