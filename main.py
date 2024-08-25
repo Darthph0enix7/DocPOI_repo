@@ -330,7 +330,7 @@ class TTSStreamer:
         self.model_path = model_path
         self.config_path = config_path
         self.vocab_path = vocab_path
-        self.speaker_wav = f"XTTS-v2\\samples\\{speaker_wav}.wav"
+        self.speaker_wav = f"audio_samples\\{speaker_wav}.wav"
         self.model = self.load_model()
         self.stop_flag = threading.Event()  # To control stopping
         self.playback_thread = None
@@ -410,7 +410,7 @@ class TTSStreamer:
     def stream_audio_with_buffering(self, text, language="en", speed=1.2, speaker=None, fireup_delay=1.0, avg_gen_time_per_char=0.08058659382140704, avg_audio_time_per_char=0.1064346054068992):
         self.stop_flag.clear()  # Clear the stop flag at the start
         if speaker:
-            self.speaker_wav = f"XTTS-v2\\samples\\{speaker}.wav"
+            self.speaker_wav = f"audio_samples\\{speaker}.wav"
 
         print("Starting the audio streaming process...")
         start_time = time.time()
@@ -897,7 +897,7 @@ def load_params():
         "use_voiceover": False  # Default to unchecked
     }
     
-    params_file = "params.json"
+    params_file = PARAM_FILE
     
     # Attempt to load parameters from the file
     try:
@@ -956,7 +956,8 @@ def reset_vectorstore():
     return "Vectorstore has been reset."
 
 def upload_file(file):
-    UPLOAD_FOLDER = "ocr/data"
+    params = load_params()
+    UPLOAD_FOLDER = params.get("directory", "ocr/data")
     if not os.path.exists(UPLOAD_FOLDER):
         os.mkdir(UPLOAD_FOLDER)
     destination = shutil.copy(file, UPLOAD_FOLDER)
