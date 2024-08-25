@@ -69,8 +69,9 @@ import subprocess
 import sys
 import re
 # Constants
-POPPLER_PATH = r'C:\Program Files\poppler-24.02.0\Library\bin'
-PYTESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+POPPLER_PATH = r'..\installer_files\poppler-24.07.0\Library\bin'
+program_files = os.environ.get('ProgramFiles')
+PYTESSERACT_CMD = os.path.join(program_files, 'Tesseract-OCR', 'tesseract.exe')
 PARAM_FILE = "params.json"
 LOG_FILE = "process.log"
 is_recording = False  # To track if we are currently recording
@@ -1046,7 +1047,7 @@ def start_recording():
     global is_recording, recording, stream
     if not is_recording:
         print("Recording started...")
-        play(AudioSegment.from_file("XTTS-v2\samples\start_sound.mp3"))  # Play start sound
+        play(AudioSegment.from_file("audio_samples\start_sound.mp3"))  # Play start sound
         recording = []
         is_recording = True
         stream = sd.InputStream(callback=callback, samplerate=44100, channels=1)
@@ -1059,7 +1060,7 @@ def stop_recording_and_save():
         print("Recording stopped. Saving to file...")
         stream.stop()
         stream.close()
-        play(AudioSegment.from_file("XTTS-v2\samples\stop_sound.mp3"))  # Play stop sound
+        play(AudioSegment.from_file("audio_samples\stop_sound.mp3"))  # Play stop sound
         # Convert the list of recordings to a NumPy array
         recording = np.concatenate(recording, axis=0)
         # Save to a WAV file using scipy.io.wavfile.write
@@ -1461,9 +1462,9 @@ with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #cha
 
     with gr.Row():
         # Audio components for speaker samples, initially hidden
-        audio1 = gr.Audio("XTTS-v2\samples\Thunder_sample.wav", autoplay=False, format="wav", visible=False, label="Thunder")
-        audio2 = gr.Audio("XTTS-v2\samples\Serenity_sample.wav", autoplay=False, format="wav", visible=False, label="Serenity")
-        audio3 = gr.Audio("XTTS-v2\samples\Blaze_sample.wav", autoplay=False, format="wav", visible=False, label="Blaze")
+        audio1 = gr.Audio("audio_samples\Thunder_sample.wav", autoplay=False, format="wav", visible=False, label="Thunder")
+        audio2 = gr.Audio("audio_samples\Serenity_sample.wav", autoplay=False, format="wav", visible=False, label="Serenity")
+        audio3 = gr.Audio("audio_samples\Blaze_sample.wav", autoplay=False, format="wav", visible=False, label="Blaze")
 
     # When the bot reaches the speaker selection step, show audio samples
     bot_msg.then(display_audio_samples, [], [audio1, audio2, audio3])
@@ -1534,7 +1535,7 @@ if check_setup():
 
     # Get the value of the key 'directory' and set it as DIRECTORY_PATH
     DIRECTORY_PATH = params.get("directory", "data")
-
+    tts_streamer = TTSStreamer(model_path="XTTS-v2", config_path="XTTS-v2\\config.json", vocab_path="XTTS-v2\\vocab.json")
     # Check if use_voiceover is True
     if params.get("use_voiceover", False):
         whisper_model = whisper.load_model("small")
