@@ -32,7 +32,6 @@ import sounddevice as sd
 from scipy.io.wavfile import write
 import gradio as gr
 import tempfile
-import multiprocessing
 
 # PyMuPDF
 import fitz  
@@ -426,7 +425,6 @@ class TTSStreamer:
             print(f"Waiting {fireup_delay:.2f} seconds before starting playback...")
             time.sleep(fireup_delay)
             print("Fireup delay is over, starting playback...")
-            processes = []
             for chunk_index in range(len(self.text_chunks)):
                 if self.stop_flag.is_set():
                     break
@@ -434,13 +432,9 @@ class TTSStreamer:
                 if audio_buffer[chunk_index] is not None:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
                         temp_output_file = temp_file.name
-                    p = multiprocessing.Process(target=self.play_audio_segment, args=(audio_buffer[chunk_index], temp_output_file))
-                    p.start()
-                    processes.append(p)
+                    self.play_audio_segment(audio_buffer[chunk_index], temp_output_file)
                     if os.path.exists(temp_output_file):
                         os.remove(temp_output_file)
-            for p in processes:
-                p.join()
 
         self.playback_thread = threading.Thread(target=start_playback_after_delay)
         self.playback_thread.start()

@@ -21,3 +21,4 @@ langchain_huggingface==0.0.3
 langchain==0.2.12
 langchain_elasticsearch==0.2.2
 coqui_tts==0.24.1
+PyAudio==0.2.14
