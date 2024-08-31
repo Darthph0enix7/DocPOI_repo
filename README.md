@@ -120,7 +120,10 @@ Once setup is complete:
 
 **Is there a Linux installer?**
 - It's coming soon! The installation process is generally easier on Linux.
-
+  
+**What is your setup to test these Projects?**
+- I currently doesnt have anything crazy, a mid-range Desktop PC with ryzen 7, dual gpu setup with rtx 3070ti and Tesla p40, 48gb ddr4 ram, 2tb pcie5 ssd with overall enough rgb (even my monitors have this Ambient lights) to light up an entire Taylor Swift concert.
+  
 # Acknowledgements
 
 Special thanks to:
