@@ -8,6 +8,17 @@ Discord: [Join our Discord](https://discord.gg/D5M6WpWB)
 Email: eren@enpoi.com  
 Feel free to contribute and just hang out ;)
 
+## Problem
+
+I have always struggled with managing my hundreds of thousands of documents, never being able to find the information I needed without sifting through the chaos I call my paper piles of official documents, certificates, and more. As someone who tends to procrastinate, this is not sustainable. To solve this problem, I wanted to create an assistant that not only acts as a personal assistant but also retrieves documents based on my query, eliminating the need for manual searches.
+
+Overall, this project aims to solve the following common problems:
+
+- **Scanning documents but never OCRing them:** It's a pain to OCR documents one by one, batch by batch, or manually enter the information when needed.
+- **Not naming documents properly:** I often tell myself I’ll do it later or remember where I saved them, but I never do.
+- **Security concerns:** Using drives, clouds, or other AI agents like ChatGPT for personal files can be risky.
+- **Lack of a quick personal assistant:** There's a need for a personal assistant that is always available to help, securely and locally.
+
 ---
 
 ![Chatbot Frame](Chatbot_preview.png)
