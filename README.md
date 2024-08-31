@@ -10,6 +10,10 @@ Feel free to contribute and just hang out ;)
 
 ---
 
+![Chatbot Frame](Chatbot_preview.png)
+
+---
+
 DocPOI is a personal assistant that runs locally on your computer, utilizing your GPU to access and manage your personal documents securely. The focus is on maintaining absolute security by ensuring that everything runs locally, with the option to host it locally for everyone. While this is an amateur project, I believe in its potential and plan to expand and improve it significantly. The goal is to give everyone a personal "Jarvis" for their documents and tasks.
 
 **Quick Links**
