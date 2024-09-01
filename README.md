@@ -8,6 +8,10 @@ Discord: [Join our Discord](https://discord.gg/D5M6WpWB)
 Email: eren@enpoi.com  
 Feel free to contribute and just hang out ;)
 
+## Requirements
+- **Over 35GB of free storage space**
+- **A NVIDIA GPU with over 6GB of VRAM** (While theoretically it would work with CPU offloading but the performance would be significantly worse.)
+
 ## Problem
 
 I have always struggled with managing my hundreds of thousands of documents, never being able to find the information I needed without sifting through the chaos I call my paper piles of official documents, certificates, and more. As someone who tends to procrastinate, this is not sustainable. To solve this problem, I wanted to create an assistant that not only acts as a personal assistant but also retrieves documents based on my query, eliminating the need for manual searches.
