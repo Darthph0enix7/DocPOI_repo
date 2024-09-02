@@ -199,7 +199,7 @@ if __name__ == "__main__":
         run_ollama()
     else:
         # If webui has already been installed, skip and run
-        if not os.path.exists(repo_dir):
+        if not os.path.exists(tts_repo_dir):
             install_dependencies()
             os.chdir(script_dir)
 
