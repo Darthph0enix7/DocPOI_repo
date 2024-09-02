@@ -70,7 +70,7 @@ import subprocess
 import sys
 import re
 # Constants
-POPPLER_PATH = r'..\installer_files\poppler-24.07.0\Library\bin'
+POPPLER_PATH = r'.\installer_files\poppler-24.07.0\Library\bin'
 program_files = os.environ.get('ProgramFiles')
 PYTESSERACT_CMD = os.path.join(program_files, 'Tesseract-OCR', 'tesseract.exe')
 PARAM_FILE = "params.json"
