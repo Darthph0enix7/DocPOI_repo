@@ -27,6 +27,7 @@ ffmpeg-python==0.2.0
 yarl==1.9.7
 langsmith==0.1.108
 torchaudio==2.4.0
+torchvision==0.19.0
 kiwisolver==1.4.5
 mkl_random==1.2.4
 fastapi==0.112.2
