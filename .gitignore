@@ -1,0 +1,7 @@
+installer_files
+XTTS-v2
+process.log
+record_manager_cache.sql
+params.json
+output_combined.wav
+temp_output*.wav

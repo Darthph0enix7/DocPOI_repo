@@ -67,6 +67,7 @@ from TTS.tts.models.xtts import Xtts
 import tkinter as tk
 from tkinter import filedialog
 import subprocess
+import platform
 import sys
 import re
 # Constants
@@ -80,6 +81,10 @@ recording = None  # Global variable to hold the recording data
 stream = None  # To handle the audio stream
 filename = "output_combined.wav"  # File to save the recording
 
+session_params = {
+    "filter_key": "",
+    "filter_value": ""
+}
 
 
 system_prompt = """You are a helpful assistant with the name Jarvis created by Eren Kalinsazlioglu at Enpoi co. that has access to users' documents. Your primary goal is to be as helpful and precise as possible in answering the users' questions. If the user asks a specific or personalized question that you do not have knowledge of, you can retrieve the relevant documents like this:
@@ -363,14 +368,21 @@ class TTSStreamer:
         sentences = re.split(r'(?<=[.!?]) +', text.strip())
         
         final_sentences = []
+        current_chunk = ""
         
         for sentence in sentences:
-            if len(sentence) > 200:
-                # Further split long sentences using commas and other punctuation marks
-                parts = re.split(r'(?<=[,;:]) +', sentence)
-                final_sentences.extend(parts)
+            if len(current_chunk) + len(sentence) + 1 <= 200:  # +1 for the space or punctuation
+                if current_chunk:
+                    current_chunk += " " + sentence
+                else:
+                    current_chunk = sentence
             else:
-                final_sentences.append(sentence)
+                if current_chunk:
+                    final_sentences.append(current_chunk)
+                current_chunk = sentence
+        
+        if current_chunk:
+            final_sentences.append(current_chunk)
         
         return final_sentences
 
@@ -507,10 +519,14 @@ class DocumentAssistant:
         """
         Retrieves relevant documents based on the user's query and returns them with their scores and metadata.
         """
+        # Create filter criteria
+        filter_query = self.create_filter_criteria(filter_criteria)
+        
         # Perform the similarity search with scores
         results = vectorstore.similarity_search_with_score(
             query=user_query, 
             k=top_k,
+            filter=filter_query
         )
         
         # Filter documents based on the score threshold
@@ -531,7 +547,7 @@ class DocumentAssistant:
             retrieved_documents.append(document_info)
 
         return retrieved_documents
-
+    
     def formulate_final_prompt(self, user_query, context):
         """
         Formulates the final input for the LLM considering the retrieved documents.
@@ -897,7 +913,9 @@ def load_params():
         "fireup_speed": 5.0,
         "language": "en",
         "speaker": "thunder",
-        "use_voiceover": False  # Default to unchecked
+        "use_voiceover": False,  # Default to unchecked
+        "filter_key": "",
+        "filter_value": ""
     }
     
     params_file = PARAM_FILE
@@ -1022,10 +1040,16 @@ def add_message(history, message):
         history.append((message["text"], None))
     return history, gr.MultimodalTextbox(value=None, interactive=False)
 
-def on_param_change(top_k, score_threshold, collection_name):
+def on_param_change(top_k, score_threshold, collection_name, filter_key=None, filter_value=None):
     params["top_k"] = top_k
     params["score_threshold"] = score_threshold
     params["collection_name"] = collection_name
+    
+    if filter_key is not None:
+        params["filter_key"] = filter_key
+    if filter_value is not None:
+        params["filter_value"] = filter_value
+    
     save_params(params)
     return gr.update()
 
@@ -1045,6 +1069,7 @@ def list_microphones():
     print("Available Microphones:")
     for i, device in enumerate(input_devices):
         print(f"{i}: {device['name']}")
+    return input_devices
 
 def start_recording():
     """Starts recording audio."""
@@ -1258,7 +1283,7 @@ Note: This feature is recommended for systems with at least 10GB of GPU VRAM for
 # Function to handle voice recognition choice
 def handle_voice_recognition_choice(history):
     user_message = history[-1][0].strip().lower()
-    if user_message == "no" or user_message == "skip":
+    if user_message == "no" or user_message == "skip" or user_message == "":
         user_responses['use_voiceover'] = False
         return handle_general_setup(history)
     elif user_message == "yes":
@@ -1291,7 +1316,7 @@ def handle_microphone_response(history):
         bot_message = "Invalid selection. Please choose a microphone by number."
         history[-1][1] = bot_message
         return history
-
+    
 # Function to handle speaker selection
 def handle_speaker_selection(history):
     speakers = list_speakers()
@@ -1333,6 +1358,9 @@ def handle_key_combination_response(history):
 
 current_state = None
 
+import tkinter as tk
+from tkinter import filedialog
+
 # Function to handle the general setup (directory selection and language)
 def handle_general_setup(history):
     global current_state
@@ -1345,21 +1373,28 @@ def handle_general_setup(history):
     # Open the file explorer to select a directory
     root = tk.Tk()
     root.withdraw()  # Hide the root window
-    selected_directory = filedialog.askdirectory()  # Open the file explorer for directory selection
-    root.destroy()  # Destroy the root window after selection
-    
-    if selected_directory:
-        user_responses['directory'] = selected_directory  # Save the full path of the selected directory
-    else:
-        user_responses['directory'] = "Default Directory"
-    
-    save_params(user_responses)
-    bot_message = f"""Directory chosen: {user_responses['directory']}.
+
+    # Use after method to ensure the dialog is shown
+    def select_directory():
+        selected_directory = filedialog.askdirectory()  # Open the file explorer for directory selection
+        root.destroy()  # Destroy the root window after selection
+
+        if selected_directory:
+            user_responses['directory'] = selected_directory  # Save the full path of the selected directory
+        else:
+            user_responses['directory'] = "Default Directory"
+        
+        save_params(user_responses)
+        bot_message = f"""Directory chosen: {user_responses['directory']}.
 Important: All files in this directory will be processed, including images and documents. Files will be converted, renamed, or removed. If you have files with extensions like (.pdf, .png, .jpeg, .jpg, .txt) that aren’t documents (such as pictures), consider isolating those or choose to limit processing to PDFs only.
 Type 'only_pdf' to limit to PDF files, type 'reselect' to choose a different directory, or press Enter to proceed."""
-    history.append([None, bot_message])
-    
-    current_state = "waiting_for_directory_response"  # Set the state for the next expected input
+        history.append([None, bot_message])
+        
+        current_state = "waiting_for_directory_response"  # Set the state for the next expected input
+
+    root.after(100, select_directory)
+    root.mainloop()
+
     return history
 
 # Function to handle the directory response
@@ -1369,9 +1404,8 @@ def handle_directory_response(history):
     
     if user_message == "reselect":
         return handle_general_setup(history)  # Reopen the file explorer for directory selection
-    elif not user_message or user_message == "skip":
+    elif not user_message or user_message == "skip" or user_message == "":
         user_responses['mode'] = "default"
-
     elif user_message == "only_pdf":
         user_responses['mode'] = "only_pdf"
     else:
@@ -1390,7 +1424,13 @@ def handle_language_selection(history):
 
 # Function to restart the script
 def restart_script():
-    subprocess.Popen(["restart.bat"])
+    if platform.system() == "Windows":
+        subprocess.Popen(["restart.bat"])
+    else:
+        # Ensure restart.sh has execute permissions
+        restart_script_path = os.path.join(os.path.dirname(__file__), "restart.sh")
+        subprocess.run(["chmod", "+x", restart_script_path])
+        subprocess.Popen(["bash", restart_script_path])
     sys.exit()
 
 def handle_language_response(history):
@@ -1401,12 +1441,17 @@ def handle_language_response(history):
         user_message = "English"
     user_responses['main_language'] = user_message
     save_params(user_responses)
-    bot_message = "Language preference saved. The setup is complete. refresh the page after some time to start using the assistant."
+    bot_message = "Language preference saved. The setup is complete. Refresh the page after some time to start using the assistant."
     history[-1][1] = bot_message
-    current_state = None  # Reset the state as the process is complete
+    current_state = "restart"  # Set the state to restart
 
+    return history
+
+# New function to handle restarting
+def handle_restart(history):
+    bot_message = "Restarting the script..."
+    history.append(["", bot_message])
     restart_script()
-    
     return history
 
 # Updated bot_response function
@@ -1434,20 +1479,23 @@ def setup_bot_response(history):
         return handle_language_selection(history)
     elif current_state == "waiting_for_language_response":
         return handle_language_response(history)
+    elif current_state == "restart":
+        return handle_restart(history)
     else:
         bot_message = "I'm not sure how to respond to that. Could you please provide more details?"
         history[-1][1] = bot_message
         return history
-
+    
 # Function to add a message to the history and reset the input box
 def add_message_setup(history, message):
     if message is not None:
         history.append([message, None])
     return history, ""
 
+
 history = []
 
-# Gradio app for setup interface
+
 with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #chatbot { height: 100%; flex-grow: 1;  }") as setup_demo:
     # Display audio samples when speaker selection is reached
     def display_audio_samples():
@@ -1466,9 +1514,9 @@ with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #cha
 
     with gr.Row():
         # Audio components for speaker samples, initially hidden
-        audio1 = gr.Audio("audio_samples\Thunder_sample.wav", autoplay=False, format="wav", visible=False, label="Thunder")
-        audio2 = gr.Audio("audio_samples\Serenity_sample.wav", autoplay=False, format="wav", visible=False, label="Serenity")
-        audio3 = gr.Audio("audio_samples\Blaze_sample.wav", autoplay=False, format="wav", visible=False, label="Blaze")
+        audio1 = gr.Audio("audio_samples/Thunder_sample.wav", autoplay=False, format="wav", visible=False, label="Thunder")
+        audio2 = gr.Audio("audio_samples/Serenity_sample.wav", autoplay=False, format="wav", visible=False, label="Serenity")
+        audio3 = gr.Audio("audio_samples/Blaze_sample.wav", autoplay=False, format="wav", visible=False, label="Blaze")
 
     # When the bot reaches the speaker selection step, show audio samples
     bot_msg.then(display_audio_samples, [], [audio1, audio2, audio3])
@@ -1478,8 +1526,6 @@ with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #cha
 
     # Start the conversation with an initial message
     setup_demo.load(lambda: [[None, "Welcome to your personal assistant setup! Before we dive into our conversations, how would you like me to address you?"]], outputs=chatbot)
-    # Call the restart function at the end of the script
-
 # Gradio app starts here
 with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #chatbot { height: 100%; flex-grow: 1;  }") as demo:
     with gr.Row():
@@ -1503,8 +1549,35 @@ with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #cha
             process_button.click(process_files, [], [])
             gr.Markdown("### Filters")
             with gr.Row():
-                key_box = gr.Dropdown(choices=["source", "mentions", "date"], label="Key")
+                key_box = gr.Dropdown(
+                    choices=[
+                        "given_document_name",
+                        "document_type",
+                        "mentions",
+                        "keywords",
+                        "about",
+                        "questions",
+                        "entities",
+                        "summaries",
+                        "authors",
+                        "source",
+                        "language",
+                        "audience",
+                        "document_id",
+                        "file_directory",
+                        "original_file_name",
+                        "file_creation_date",
+                        "file_modification_date",
+                        "metadata_creation_date"
+                    ],
+                    label="Key"
+                )
                 value_box = gr.Dropdown(choices=["Name1", "Name2", "Name3"], label="Value")
+                
+                # Add change event handlers to update params
+                key_box.change(lambda key: on_param_change(params["top_k"], params["score_threshold"], params["collection_name"], filter_key=key), key_box)
+                value_box.change(lambda value: on_param_change(params["top_k"], params["score_threshold"], params["collection_name"], filter_value=value), value_box)
+                
             gr.Markdown("### Parameters")
             score_threshold_slider = gr.Slider(0.01, 0.99, label="Score Threshold", value=params["score_threshold"], interactive=True)
             top_k_input = gr.Number(label="Top K", value=params["top_k"], interactive=True)
@@ -1512,10 +1585,9 @@ with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #cha
                 collection_name_input = gr.Textbox(placeholder="Collection Name", label="Collection Name", value=params["collection_name"], interactive=True)
                 reload_button = gr.Button("Reload Vectorstore", scale=0)
                 reload_button.click(reload_vectorstore, [], None)
-            score_threshold_slider.change(on_param_change, [top_k_input, score_threshold_slider, collection_name_input])
-            top_k_input.change(on_param_change, [top_k_input, score_threshold_slider, collection_name_input])
-            collection_name_input.change(on_param_change, [top_k_input, score_threshold_slider, collection_name_input])
-
+            score_threshold_slider.change(lambda value: on_param_change(top_k_input.value, value, collection_name_input.value), score_threshold_slider)
+            top_k_input.change(lambda value: on_param_change(value, score_threshold_slider.value, collection_name_input.value), top_k_input)
+            collection_name_input.change(lambda value: on_param_change(top_k_input.value, score_threshold_slider.value, value), collection_name_input)
             with gr.Accordion("Advanced Settings", open=False):
                 use_voiceover_checkbox = gr.Checkbox(label="Use Voice Over", value=params["use_voiceover"], interactive=True)
                 voiceover_speed_slider = gr.Slider(0.5, 1.5, value=params["voiceover_speed"], step=0.1, interactive=True, label="Voiceover Speed")

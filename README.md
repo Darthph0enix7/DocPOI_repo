@@ -1,5 +1,7 @@
 # DocPOI
 
+## !!Installer is broken for a short time pls wait
+
 **Contact**  
 Please contact me or our group for any issues, feature recommendations, ideas, or even criticism of the code. Everything is welcome!  
 You can join our Discord for the best experience.  
@@ -12,7 +14,7 @@ Feel free to contribute and just hang out ;)
 - **Over 35GB of free storage space**
 - **A NVIDIA GPU with over 6GB of VRAM** (While theoretically it would work with CPU offloading but the performance would be significantly worse.)
 
-## Problem
+## The Problem
 
 I have always struggled with managing my hundreds of thousands of documents, never being able to find the information I needed without sifting through the chaos I call my paper piles of official documents, certificates, and more. As someone who tends to procrastinate, this is not sustainable. To solve this problem, I wanted to create an assistant that not only acts as a personal assistant but also retrieves documents based on my query, eliminating the need for manual searches.
 
@@ -25,7 +27,7 @@ Overall, this project aims to solve the following common problems:
 
 ---
 
-![Chatbot Frame](Chatbot_preview.png)
+![Chatbot Frame](GITHUB/Chatbot_preview.png)
 
 ---
 
@@ -50,14 +52,13 @@ DocPOI is a personal assistant that runs locally on your computer, utilizing you
 - **Voice Over (TTS):** Have documents and responses read aloud.
 
 ### Coming Soon
-- **One-Click Installer for Linux:** Simplifying the installation process for Linux users.
 - **Document Categorization:** Automatically categorize documents based on their content.
 - **Custom Labeling:** Label documents with custom tags (e.g., school, work, etc.).
 - **Financial Document Management:** Special handling of financial documents, tracking incomes, and outcomes.
 - **Image Recognition and Labeling:** Extend document handling to images, including people recognition, object detection, and characterization.
 - **Wake Word Detection:** Activate the assistant with a wake word, enabling hands-free interaction.
 - **Multiple Agents:** Use different agents for different tasks, with support for multiple wake words.
-
+- **One-Click Installer for Linux:** Simplifying the installation process for Linux users. (DONE)
 ### Significant Quality Improvements Planned
 - **Better OCR Engine:** Exploring Surya OCR for improved accuracy.
 - **Structured Information Extraction:** Extract structured data from documents more effectively.
@@ -70,7 +71,11 @@ DocPOI is a personal assistant that runs locally on your computer, utilizing you
 ### Auto Installation (Strongly Recommended)
 A one-click installer is available for Windows. It installs all the required programs, including Docker, Ollama, C++ build tools, PyTorch, CUDA, PyTesseract, and more. 
 
-# Important!!
+## For linux
+just run the start_linux.sh, simple 
+
+## For Windows
+Important!!
 before running "Virtualization" must be anabled in BIOS 
 
 - Step 1: run enable__windows_features.bat once if you have not anabled any windows features
