@@ -64,6 +64,7 @@ from langchain_core.prompts import (
 from langchain.memory import ConversationBufferMemory
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
+
 import tkinter as tk
 from tkinter import filedialog
 import subprocess
@@ -1358,12 +1359,8 @@ def handle_key_combination_response(history):
 
 current_state = None
 
-import tkinter as tk
-from tkinter import filedialog
-
 # Function to handle the general setup (directory selection and language)
 def handle_general_setup(history):
-    global current_state
     bot_message = "Now, let's select the main directory where your files are stored. The file explorer will open shortly."
     history[-1][1] = bot_message
 
@@ -1389,17 +1386,15 @@ def handle_general_setup(history):
 Important: All files in this directory will be processed, including images and documents. Files will be converted, renamed, or removed. If you have files with extensions like (.pdf, .png, .jpeg, .jpg, .txt) that aren’t documents (such as pictures), consider isolating those or choose to limit processing to PDFs only.
 Type 'only_pdf' to limit to PDF files, type 'reselect' to choose a different directory, or press Enter to proceed."""
         history.append([None, bot_message])
-        
-        current_state = "waiting_for_directory_response"  # Set the state for the next expected input
 
     root.after(100, select_directory)
     root.mainloop()
 
     return history
 
+
 # Function to handle the directory response
 def handle_directory_response(history):
-    global current_state
     user_message = history[-1][0].strip().lower()
     
     if user_message == "reselect":
@@ -1412,14 +1407,12 @@ def handle_directory_response(history):
         user_responses['mode'] = "default"
     
     save_params(user_responses)
-    current_state = "language_selection"  # Move to the next state
     return handle_language_selection(history)
 
+
 def handle_language_selection(history):
-    global current_state
     bot_message = "Lastly, please enter your primary language. Type 'skip' to default to English."
     history[-1][1] = bot_message
-    current_state = "waiting_for_language_response"
     return history
 
 # Function to restart the script
@@ -1433,8 +1426,8 @@ def restart_script():
         subprocess.Popen(["bash", restart_script_path])
     sys.exit()
 
+
 def handle_language_response(history):
-    global current_state
     user_message = history[-1][0].strip().lower()
     
     if not user_message or user_message == "skip":
@@ -1443,47 +1436,59 @@ def handle_language_response(history):
     save_params(user_responses)
     bot_message = "Language preference saved. The setup is complete. Refresh the page after some time to start using the assistant."
     history[-1][1] = bot_message
-    current_state = "restart"  # Set the state to restart
 
-    return history
+    # Automatically transition to the restart step
+    history.append([None, None])
+    return handle_restart(history)
 
 # New function to handle restarting
 def handle_restart(history):
     bot_message = "Restarting the script..."
-    history.append(["", bot_message])
+    history[-1][1] = bot_message
     restart_script()
     return history
 
-# Updated bot_response function
 def setup_bot_response(history):
-    global current_state
     step = len(history)
+    print(f"Current step at the beginning of setup_bot_response: {step}")
     
     if step == 1:
+        print("Handling welcome message")
         return handle_welcome(history)
     elif step == 2:
+        print("Handling ask name")
         return handle_ask_name(history)
     elif step == 3:
+        print("Handling voice recognition choice")
         return handle_voice_recognition_choice(history)
     elif step == 4 and user_responses.get('use_voiceover'):
+        print("Handling microphone response")
         return handle_microphone_response(history)
     elif step == 5 and user_responses.get('use_voiceover'):
+        print("Handling speaker response")
         return handle_speaker_response(history)
     elif step == 6 and user_responses.get('use_voiceover'):
+        print("Handling key combination response")
         return handle_key_combination_response(history)
     elif step == 4 and not user_responses.get('use_voiceover'):
+        print("Handling general setup")
         return handle_general_setup(history)
-    elif current_state == "waiting_for_directory_response":
+    elif step == 5:
+        print("Handling directory response")
         return handle_directory_response(history)
-    elif current_state == "language_selection":
+    elif step == 6:
+        print("Handling language selection")
         return handle_language_selection(history)
-    elif current_state == "waiting_for_language_response":
+    elif step == 7:
+        print("Handling language response")
         return handle_language_response(history)
-    elif current_state == "restart":
+    elif step == 8:
+        print("Handling restart")
         return handle_restart(history)
     else:
         bot_message = "I'm not sure how to respond to that. Could you please provide more details?"
         history[-1][1] = bot_message
+        print("Unhandled step, asking for more details")
         return history
     
 # Function to add a message to the history and reset the input box
