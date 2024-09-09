@@ -1249,10 +1249,11 @@ def check_setup():
 
 user_responses = {}
 params = load_params()
+current_state = None
 
 # Function to save parameters to a JSON file
 def save_params(params):
-    with open(PARAM_FILE, "w") as f:
+    with open("params.json", "w") as f:
         json.dump(params, f)
 
 # Function to list available speakers (dummy list for now)
@@ -1298,43 +1299,57 @@ def handle_voice_recognition_choice(history):
 
 # Function to handle microphone selection
 def handle_microphone_selection(history):
-    input_devices = list_microphones()
+    global current_state
+    input_devices = list_microphones()  # This should return a list of available microphones
     bot_message = "Please choose your microphone from the list by entering the corresponding number:\n"
+    
     for i, device in enumerate(input_devices):
         bot_message += f"{i + 1}. {device['name']}\n"
+    
     history[-1][1] = bot_message
+    current_state = "waiting_for_microphone_selection"
     return history
 
 def handle_microphone_response(history):
+    global current_state
     user_message = history[-1][0].strip()
-    input_devices = list_microphones()
+    input_devices = list_microphones()  # Retrieve available microphones again to validate selection
+
     if user_message.isdigit() and 1 <= int(user_message) <= len(input_devices):
         selected_device = input_devices[int(user_message) - 1]
         user_responses['microphone'] = selected_device['name']
         save_params(user_responses)
+        bot_message = f"Microphone '{selected_device['name']}' selected."
+        history.append([None, bot_message])
+        current_state = "waiting_for_speaker_selection"
         return handle_speaker_selection(history)
     else:
         bot_message = "Invalid selection. Please choose a microphone by number."
         history[-1][1] = bot_message
         return history
-    
+
 # Function to handle speaker selection
 def handle_speaker_selection(history):
+    global current_state
     speakers = list_speakers()
-    bot_message = "I have a range of voices available. Please select your preferred voice by number. You can listen to samples if you'd like:\n"
+    bot_message = "I have a range of voices available. Please select your preferred voice by number:\n"
     for i, speaker in enumerate(speakers):
         bot_message += f"{i + 1}. {speaker['name']}\n"
     history[-1][1] = bot_message
-    
+    current_state = "waiting_for_speaker_selection"
     return history
 
 def handle_speaker_response(history):
+    global current_state
     user_message = history[-1][0].strip()
     speakers = list_speakers()
+    
     if user_message.isdigit() and 1 <= int(user_message) <= len(speakers):
         selected_speaker = speakers[int(user_message) - 1]
         user_responses['speaker'] = selected_speaker['name']
         save_params(user_responses)
+        bot_message = f"Speaker '{selected_speaker['name']}' selected."
+        history.append([None, bot_message])
         return handle_key_combination_selection(history)
     else:
         bot_message = "Invalid selection. Please choose a speaker by number."
@@ -1343,10 +1358,12 @@ def handle_speaker_response(history):
 
 # Function to handle key combination selection
 def handle_key_combination_selection(history):
+    global current_state
     bot_message = """Let's set up voice recognition. Please enter the key combination you'd like to use to activate it.
 The default is Ctrl+Alt+F13 for custom keyboards. 
 Type 'skip' or press Enter to keep the default. Use standard key names like Ctrl, Alt, Win, Tab, Shift, etc."""
     history[-1][1] = bot_message
+    current_state = "waiting_for_key_combination"
     return history
 
 def handle_key_combination_response(history):
@@ -1355,69 +1372,79 @@ def handle_key_combination_response(history):
         user_message = "Ctrl+Alt+F13"
     user_responses['key_combination'] = user_message
     save_params(user_responses)
+    
     return handle_general_setup(history)
-
-current_state = None
 
 # Function to handle the general setup (directory selection and language)
 def handle_general_setup(history):
+    global current_state
     bot_message = "Now, let's select the main directory where your files are stored. The file explorer will open shortly."
     history[-1][1] = bot_message
 
-    # Display the bot message before opening the file explorer
-    history.append([None, bot_message])
+    # Display the message first and then automatically proceed to select the directory
+    current_state = "waiting_for_directory_selection"
+    
+    # Trigger directory selection after displaying the message
+    history = handle_directory_selection(history)  # Automatically call directory selection after showing the message
+    return history
 
-    # Open the file explorer to select a directory
+# Function to actually open the directory selector immediately after the message is shown
+def handle_directory_selection(history):
+    global current_state
     root = tk.Tk()
     root.withdraw()  # Hide the root window
+    selected_directory = filedialog.askdirectory()  # Open the file explorer for directory selection
+    root.destroy()  # Destroy the root window after selection
+    
+    if selected_directory:
+        user_responses['directory'] = selected_directory
+    else:
+        user_responses['directory'] = "Default Directory"
+    
+    save_params(user_responses)
 
-    # Use after method to ensure the dialog is shown
-    def select_directory():
-        selected_directory = filedialog.askdirectory()  # Open the file explorer for directory selection
-        root.destroy()  # Destroy the root window after selection
-
-        if selected_directory:
-            user_responses['directory'] = selected_directory  # Save the full path of the selected directory
-        else:
-            user_responses['directory'] = "Default Directory"
-        
-        save_params(user_responses)
-        bot_message = f"""Directory chosen: {user_responses['directory']}.
-Important: All files in this directory will be processed, including images and documents. Files will be converted, renamed, or removed. If you have files with extensions like (.pdf, .png, .jpeg, .jpg, .txt) that aren’t documents (such as pictures), consider isolating those or choose to limit processing to PDFs only.
+    # Show message for only_pdf or reselect options after selecting the directory
+    bot_message = f"""Directory chosen: {user_responses['directory']}.
+Important: All files in this directory will be processed. 
 Type 'only_pdf' to limit to PDF files, type 'reselect' to choose a different directory, or press Enter to proceed."""
-        history.append([None, bot_message])
-
-    root.after(100, select_directory)
-    root.mainloop()
+    
+    history.append([None, bot_message])
+    current_state = "waiting_for_directory_response"  # Now wait for user's response
 
     return history
 
-
-# Function to handle the directory response
+# Function to handle the directory response after the user makes a choice
 def handle_directory_response(history):
+    global current_state
     user_message = history[-1][0].strip().lower()
     
     if user_message == "reselect":
-        return handle_general_setup(history)  # Reopen the file explorer for directory selection
-    elif not user_message or user_message == "skip" or user_message == "":
+        # Go back to the general setup to reselect the directory
+        return handle_general_setup(history)
+    elif not user_message or user_message == "skip":
+        # If no input or skip, use the default mode
         user_responses['mode'] = "default"
     elif user_message == "only_pdf":
+        # If user selects only_pdf mode
         user_responses['mode'] = "only_pdf"
     else:
+        # Default mode if user presses Enter
         user_responses['mode'] = "default"
     
     save_params(user_responses)
+    current_state = "waiting_for_language_selection"  # Move to next state
     return handle_language_selection(history)
 
-
 def handle_language_selection(history):
+    global current_state
     bot_message = "Lastly, please enter your primary language. Type 'skip' to default to English."
     history[-1][1] = bot_message
+    current_state = "waiting_for_language_response"
     return history
 
 # Function to restart the script
 def restart_script():
-    if platform.system() == "Windows":
+    if sys.platform.startswith('win'):
         subprocess.Popen(["restart.bat"])
     else:
         # Ensure restart.sh has execute permissions
@@ -1426,80 +1453,88 @@ def restart_script():
         subprocess.Popen(["bash", restart_script_path])
     sys.exit()
 
+def handle_auto_restart(history):
+    bot_message = "Restarting now..."
+    history.append([None, bot_message])
+
+    # Call the restart function
+    restart_script()
+
+    return history
+
+def handle_final_message(history):
+    global current_state
+    bot_message = "The setup is complete. The assistant will restart shortly. Enter anything to continue..."
+    history[-1][1] = bot_message
+    current_state = "ready_for_auto_restart"
+
+    # Schedule restart automatically without user interaction
+    threading.Timer(0.5, handle_auto_restart, args=[history]).start()  # 3-second delay before restart
+    return history
+
+# Function to handle auto-restart
+def handle_auto_restart(history):
+    bot_message = "Restarting now..."
+    history.append([None, bot_message])
+
+    restart_script()
+    return history
 
 def handle_language_response(history):
+    global current_state
     user_message = history[-1][0].strip().lower()
     
     if not user_message or user_message == "skip":
         user_message = "English"
     user_responses['main_language'] = user_message
     save_params(user_responses)
-    bot_message = "Language preference saved. The setup is complete. Refresh the page after some time to start using the assistant."
-    history[-1][1] = bot_message
-
-    # Automatically transition to the restart step
-    history.append([None, None])
-    return handle_restart(history)
-
-# New function to handle restarting
-def handle_restart(history):
-    bot_message = "Restarting the script..."
-    history[-1][1] = bot_message
-    restart_script()
-    return history
-
-def setup_bot_response(history):
-    step = len(history)
-    print(f"Current step at the beginning of setup_bot_response: {step}")
     
-    if step == 1:
-        print("Handling welcome message")
+    bot_message = "Language preference saved. The setup is complete."
+    history[-1][1] = bot_message
+    current_state = "show_final_message"  # Set state for the final message display
+
+    return handle_final_message(history)
+
+# Bot response logic to handle the flow of messages and actions
+def setup_bot_response(history):
+    global current_state
+    
+    if current_state is None and len(history) == 1:
         return handle_welcome(history)
-    elif step == 2:
-        print("Handling ask name")
+    elif current_state is None and len(history) == 2:
         return handle_ask_name(history)
-    elif step == 3:
-        print("Handling voice recognition choice")
+    elif current_state is None and len(history) == 3:
         return handle_voice_recognition_choice(history)
-    elif step == 4 and user_responses.get('use_voiceover'):
-        print("Handling microphone response")
+    elif current_state == "waiting_for_microphone_selection":
         return handle_microphone_response(history)
-    elif step == 5 and user_responses.get('use_voiceover'):
-        print("Handling speaker response")
+    elif current_state == "waiting_for_speaker_selection":
         return handle_speaker_response(history)
-    elif step == 6 and user_responses.get('use_voiceover'):
-        print("Handling key combination response")
+    elif current_state == "waiting_for_key_combination":
         return handle_key_combination_response(history)
-    elif step == 4 and not user_responses.get('use_voiceover'):
-        print("Handling general setup")
-        return handle_general_setup(history)
-    elif step == 5:
-        print("Handling directory response")
+    elif current_state == "waiting_for_directory_selection":
+        return handle_directory_selection(history)  # Automatically open the file explorer
+    elif current_state == "waiting_for_directory_response":
         return handle_directory_response(history)
-    elif step == 6:
-        print("Handling language selection")
+    elif current_state == "waiting_for_language_selection":
         return handle_language_selection(history)
-    elif step == 7:
-        print("Handling language response")
+    elif current_state == "waiting_for_language_response":
         return handle_language_response(history)
-    elif step == 8:
-        print("Handling restart")
-        return handle_restart(history)
+    elif current_state == "show_final_message":
+        return handle_final_message(history)
+    elif current_state == "ready_for_auto_restart":
+        return handle_auto_restart(history)
     else:
         bot_message = "I'm not sure how to respond to that. Could you please provide more details?"
         history[-1][1] = bot_message
-        print("Unhandled step, asking for more details")
         return history
-    
+
 # Function to add a message to the history and reset the input box
 def add_message_setup(history, message):
     if message is not None:
         history.append([message, None])
     return history, ""
 
-
 history = []
-
 
 with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #chatbot { height: 100%; flex-grow: 1;  }") as setup_demo:
     # Display audio samples when speaker selection is reached
