@@ -82,6 +82,9 @@ recording = None  # Global variable to hold the recording data
 stream = None  # To handle the audio stream
 filename = "output_combined.wav"  # File to save the recording
 
+metadata_chain = ChatOllama(model="llama3.1:8b", temperature=0.9)
+naming_chain = ChatOllama(model="llama3.1:8b", temperature=0.5, num_predict=30)
+
 session_params = {
     "filter_key": "",
     "filter_value": ""
@@ -793,7 +796,7 @@ def generate_metadata_and_name(file_path):
     metadata_prompt = ChatPromptTemplate.from_template(metadata_template)
 
     # Initialize the LLM for metadata extraction
-    metadata_llm = ChatOllama(model="llama3.1:8b", temperature=0.9)
+    metadata_llm = metadata_chain
 
     # Create the chain for metadata extraction
     metadata_chain = metadata_prompt | metadata_llm
@@ -825,7 +828,7 @@ def generate_metadata_and_name(file_path):
     naming_prompt = ChatPromptTemplate.from_template(naming_template)
 
     # Initialize the LLM for naming
-    naming_llm = ChatOllama(model="llama3.1:8b", temperature=0.9, num_predict=30)
+    naming_llm = naming_chain
 
     # Create the chain for document naming
     naming_chain = naming_prompt | naming_llm
