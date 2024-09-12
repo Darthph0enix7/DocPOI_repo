@@ -75,15 +75,18 @@ import re
 POPPLER_PATH = r'.\installer_files\poppler-24.07.0\Library\bin'
 program_files = os.environ.get('ProgramFiles')
 PYTESSERACT_CMD = os.path.join(program_files, 'Tesseract-OCR', 'tesseract.exe')
+tessdata_dir = os.path.join("installer_files", "tessdata")
+tessdata_dir_config = f'--tessdata-dir "{tessdata_dir}"'
+
+
 PARAM_FILE = "params.json"
 LOG_FILE = "process.log"
 is_recording = False  # To track if we are currently recording
 recording = None  # Global variable to hold the recording data
 stream = None  # To handle the audio stream
 filename = "output_combined.wav"  # File to save the recording
-
-metadata_chain = ChatOllama(model="llama3.1:8b", temperature=0.9)
-naming_chain = ChatOllama(model="llama3.1:8b", temperature=0.5, num_predict=30)
+metadata_llm = ChatOllama(model="llama3.1:8b", temperature=0.9)
+naming_llm = ChatOllama(model="llama3.1:8b", temperature=0.5, num_predict=30)
 
 session_params = {
     "filter_key": "",
@@ -622,7 +625,6 @@ def ocr_pdf(input_pdf_path):
     try:
         images = convert_from_path(input_pdf_path, poppler_path=POPPLER_PATH)
         pdf_writer = PdfWriter()
-        full_text = ""
         
         # OCR the first page and detect its language
         first_page_text = pytesseract.image_to_string(images[0])
@@ -637,10 +639,15 @@ def ocr_pdf(input_pdf_path):
         # OCR the entire PDF with the detected language
         for image in images:
             processed_image = adaptive_image_processing(image)
-            page_text = pytesseract.image_to_string(processed_image, lang=detected_lang_iso3)
-            full_text += page_text
-            
-            pdf_bytes = pytesseract.image_to_pdf_or_hocr(processed_image, extension='pdf', lang=detected_lang_iso3)
+            if processed_image is None:
+                print("Error: processed_image is None")
+                continue
+
+            pdf_bytes = pytesseract.image_to_pdf_or_hocr(processed_image, extension='pdf', lang=detected_lang_iso3, config=tessdata_dir_config) 
+            if pdf_bytes is None:
+                print("Error: pdf_bytes is None")
+                continue
+
             pdf_stream = io.BytesIO(pdf_bytes)
             pdf = PdfReader(pdf_stream)
             pdf_writer.add_page(pdf.pages[0])
@@ -650,10 +657,10 @@ def ocr_pdf(input_pdf_path):
             pdf_writer.write(f_out)
 
         print(f"OCR processed and replaced {output_pdf_path}")
-        return output_pdf_path, full_text
+        return output_pdf_path
     except Exception as e:
         logging.error(f"Error during OCR: {e}")
-        return None, ""
+        return None
 
 def check_pdf_has_readable_text(file_path: str) -> bool:
     """Check if the PDF contains any readable text."""
@@ -694,7 +701,7 @@ def process_pdf_file(file_path: str) -> None:
     # Perform OCR if no readable text is found
     if not has_text:
         print(f"The PDF {file_path} does not contain readable text. Performing OCR...")
-        file_path, _ = ocr_pdf(file_path)  # Update file path if the file was replaced
+        file_path = ocr_pdf(file_path)  # Update file path if the file was replaced
 
     # Generate metadata if necessary
     if not check_for_metadata_json(file_path):
@@ -726,7 +733,7 @@ def process_image_file(file_path: str) -> None:
     pdf_path = convert_image_to_pdf(file_path)
     if pdf_path:
         print(f"Converted image to PDF: {pdf_path}. Performing OCR and generating metadata...")
-        pdf_path, _ = ocr_pdf(pdf_path)  # Update file path after OCR
+        pdf_path = ocr_pdf(pdf_path)  # Capture the full text from OCR
         document_name, metadata = generate_metadata_and_name(file_path)
     return document_name
 
@@ -782,6 +789,7 @@ def update_pdfmetadata(file_path: str, new_metadata: dict) -> None:
         with open(file_path, "wb") as updated_file:
             writer.write(updated_file)
 def generate_metadata_and_name(file_path):
+    
     # Load the document content
     file_extension = os.path.splitext(file_path)[1].lower()
     
@@ -794,9 +802,6 @@ def generate_metadata_and_name(file_path):
     
     docs = loader.load()
     metadata_prompt = ChatPromptTemplate.from_template(metadata_template)
-
-    # Initialize the LLM for metadata extraction
-    metadata_llm = metadata_chain
 
     # Create the chain for metadata extraction
     metadata_chain = metadata_prompt | metadata_llm
@@ -826,9 +831,6 @@ def generate_metadata_and_name(file_path):
     # Format the metadata in a readable format
     formatted_metadata = json.dumps(metadata, indent=4, ensure_ascii=False)
     naming_prompt = ChatPromptTemplate.from_template(naming_template)
-
-    # Initialize the LLM for naming
-    naming_llm = naming_chain
 
     # Create the chain for document naming
     naming_chain = naming_prompt | naming_llm

@@ -8,6 +8,7 @@ import requests
 
 script_dir = os.getcwd()
 repo_dir = os.path.join(script_dir)
+remote_url = "https://github.com/Darthph0enix7/DocPOI_repo.git"
 tts_repo_dir = os.path.join(repo_dir, "XTTS-v2")
 
 
@@ -144,8 +145,21 @@ def update_conda():
 def update_dependencies():
     # Update the webui dependencies
     os.chdir(repo_dir)
-    run_cmd("git pull")
+    
+    # Check if the .git directory exists
+    if not os.path.isdir(".git"):
+        print("Initializing new Git repository...")
+        run_cmd("git init")
+        run_cmd(f"git remote add origin {remote_url}")
+    
+    # Ensure the repository is connected to the remote
+    run_cmd("git fetch origin")
+    run_cmd("git checkout main")
+    run_cmd("git pull origin main")
+    
+    # Install dependencies
     run_cmd("pip install -r requirements.txt")
+    
     os.chdir(script_dir)
 
 

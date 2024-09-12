@@ -26,6 +26,8 @@ set DOCKER_PATH=%ProgramFiles%\Docker\Docker\Docker Desktop.exe
 set TESSERACT_DOWNLOAD_URL=https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.4.0.20240606.exe
 set OLLAMA_DOWNLOAD_URL=https://ollama.com/download/OllamaSetup.exe
 set POPPLER_DOWNLOAD_URL=https://github.com/oschwartz10612/poppler-windows/releases/download/v24.07.0-0/Release-24.07.0-0.zip
+set TESSDATA_REPO_URL=https://github.com/tesseract-ocr/tessdata.git
+set TESSCONFIGS_REPO_URL=https://github.com/tesseract-ocr/tessconfigs.git
 set conda_exists=F
 set VS_BUILD_TOOLS_URL=https://aka.ms/vs/17/release/vs_BuildTools.exe
 set "MSBUILD_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin"
@@ -80,6 +82,26 @@ if not exist "%TESSERACT_PATH%" (
     echo Tesseract is already installed at %TESSERACT_PATH%.
 )
 
+@rem Check for and download tessdata and tessconfigs if not already downloaded
+if not exist "%INSTALL_DIR%\tessdata" (
+    echo Downloading tessdata from %TESSDATA_REPO_URL% to %INSTALL_DIR%\tessdata
+    git clone %TESSDATA_REPO_URL% "%INSTALL_DIR%\tessdata" || ( echo. && echo Tessdata failed to download. && goto end )
+
+    echo Downloading tessconfigs from %TESSCONFIGS_REPO_URL% to %INSTALL_DIR%\tessdata\tessconfigs
+    git clone %TESSCONFIGS_REPO_URL% "%INSTALL_DIR%\tessdata\tessconfigs" || ( echo. && echo Tessconfigs failed to download. && goto end )
+
+    @rem Remove the configs file in tessdata
+    if exist "%INSTALL_DIR%\tessdata\configs" (
+        del "%INSTALL_DIR%\tessdata\configs" || ( echo. && echo Failed to delete configs file. && goto end )
+    )
+
+    @rem Move the configs folder from tessconfigs to the root tessdata folder
+    if exist "%INSTALL_DIR%\tessdata\tessconfigs\configs" (
+        move "%INSTALL_DIR%\tessdata\tessconfigs\configs" "%INSTALL_DIR%\tessdata" || ( echo. && echo Failed to move configs folder. && goto end )
+    )
+) else (
+    echo Tessdata and tessconfigs are already downloaded at %INSTALL_DIR%\tessdata.
+)
 @rem Check for and install Ollama if not installed
 if not exist "%OLLAMA_PATH%" (
     echo Downloading Ollama from %OLLAMA_DOWNLOAD_URL% to %INSTALL_DIR%\ollama_installer.exe
