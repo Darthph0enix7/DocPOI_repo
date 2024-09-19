@@ -20,7 +20,7 @@ langchain_experimental==0.0.62
 langchain_huggingface==0.0.3
 langchain==0.2.12
 langchain_elasticsearch==0.2.2
-coqui_tts==0.24.1
+#coqui_tts==0.24.1
 PyAudio==0.2.14
 httpx==0.25.0
 ffmpeg-python==0.2.0

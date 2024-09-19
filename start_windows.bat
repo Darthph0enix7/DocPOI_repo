@@ -68,6 +68,8 @@ call python -c "import requests" 2>nul || (
     echo Installing requests module...
     call python -m pip install requests || ( echo. && echo Failed to install requests. && goto end )
 )
+@rem Set up the environment for Microsoft C++ Build Tools
+call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 || ( echo. && echo Failed to set up the environment for Microsoft C++ Build Tools. && goto end )
 
 @rem Check for and install Tesseract if not installed
 if not exist "%TESSERACT_PATH%" (

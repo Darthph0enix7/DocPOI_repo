@@ -154,8 +154,9 @@ def update_dependencies():
     
     # Ensure the repository is connected to the remote
     run_cmd("git fetch origin")
-    run_cmd("git checkout main")
-    run_cmd("git pull origin main")
+    
+    # Reset any local changes and pull the latest version
+    run_cmd("git reset --hard origin/main")
     
     # Install dependencies
     run_cmd("pip install -r requirements.txt")
