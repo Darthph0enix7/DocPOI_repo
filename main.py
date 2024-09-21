@@ -7,6 +7,7 @@ from typing import List, Optional
 import wave
 import uuid
 import shutil
+import torch
 import random
 import logging
 import webbrowser
@@ -71,6 +72,9 @@ import subprocess
 import platform
 import sys
 import re
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 # Constants
 POPPLER_PATH = r'.\installer_files\poppler-24.07.0\Library\bin'
 program_files = os.environ.get('ProgramFiles')
@@ -87,7 +91,7 @@ stream = None  # To handle the audio stream
 filename = "output_combined.wav"  # File to save the recording
 metadata_llm = ChatOllama(model="llama3.1:8b", temperature=0.9)
 naming_llm = ChatOllama(model="llama3.1:8b", temperature=0.5, num_predict=30)
-
+embed_model = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L6-v2", model_kwargs = {'device': device})
 session_params = {
     "filter_key": "",
     "filter_value": ""
@@ -245,6 +249,10 @@ class DocPOIDirectoryLoader(BaseLoader):
             else:
                 metadata = {}
 
+            # Ensure document_id is included in metadata
+            if 'document_id' not in metadata:
+                metadata['document_id'] = os.path.splitext(filename)[0]
+
             if filename.endswith('.pdf'):
                 documents.extend(self.load_pdf(file_path, metadata))
             elif filename.endswith('.txt'):
@@ -255,7 +263,7 @@ class DocPOIDirectoryLoader(BaseLoader):
         with fitz.open(file_path) as pdf_document:
             full_text = ''.join([pdf_document.load_page(page_number).get_text() for page_number in range(len(pdf_document))])
 
-        embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L6-v2", model_kwargs={'device': 'cuda'})
+        embedding = embed_model
         text_splitter = SemanticChunker(embedding, breakpoint_threshold_type="percentile")
         chunks = text_splitter.create_documents([full_text])
 
@@ -270,13 +278,13 @@ class DocPOIDirectoryLoader(BaseLoader):
         with open(file_path, 'r', encoding='utf-8') as f:
             text_content = f.read()
 
-        embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L6-v2", model_kwargs={'device': 'cuda'})
+        embedding = embed_model
         text_splitter = SemanticChunker(embedding, breakpoint_threshold_type="percentile")
         chunks = text_splitter.create_documents([text_content])
 
         return [
             Document(
-                page_content=chunk.page_content,  # Corrected from chunk.content to chunk.page_content
+                page_content=chunk.page_content,
                 metadata=OrderedDict(metadata, page_number=page_number + 1, source=file_path)
             ) for page_number, chunk in enumerate(chunks)
         ]
@@ -311,10 +319,14 @@ class DocPOI(BaseLoader):
         else:
             metadata = {'source': self.file_path, 'processed_date': datetime.now().isoformat()}
 
+        # Ensure document_id is included in metadata
+        if 'document_id' not in metadata:
+            metadata['document_id'] = os.path.splitext(os.path.basename(self.file_path))[0]
+
         ordered_metadata = OrderedDict(metadata)
 
         # Set up the text chunker
-        embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L6-v2")
+        embedding = embed_model
         text_splitter = SemanticChunker(embedding, breakpoint_threshold_type="percentile")
 
         # Read and process the file
@@ -686,14 +698,18 @@ def check_pdf_metadata_keys(file_path: str, required_keys: list) -> bool:
         logging.error(f"Error reading metadata from {file_path}: {e}")
         return False
 
+import os
+
 def check_for_metadata_json(file_path: str) -> bool:
     """Check if the corresponding JSON metadata file exists."""
     json_file_path = f"{os.path.splitext(file_path)[0]}.json"
     return os.path.exists(json_file_path)
 
-def process_pdf_file(file_path: str) -> None:
+def process_pdf_file(file_path: str) -> str:
     """Process a single PDF file and perform all checks."""
     print(f"Processing {file_path}...")
+
+    document_name = None  # Initialize document_name
 
     has_text = check_pdf_has_readable_text(file_path)
     metadata_keys = ["/document_id", "/original_file_name", "/given_document_name"]
@@ -713,28 +729,35 @@ def process_pdf_file(file_path: str) -> None:
         print(f"The PDF {file_path} contains the required metadata keys.")
     else:
         print(f"The PDF {file_path} is missing some required metadata keys.")
+    
     return document_name
 
-def process_txt_file(file_path: str) -> None:
+def process_txt_file(file_path: str) -> str:
     """Process a TXT file by generating metadata if necessary."""
     print(f"Processing TXT file {file_path}...")
+
+    document_name = None  # Initialize document_name
 
     if check_for_metadata_json(file_path):
         print(f"The corresponding metadata JSON file exists for {file_path}.")
     else:
         print(f"The corresponding metadata JSON file does not exist for {file_path}. Generating metadata...")
         document_name, metadata = generate_metadata_and_name(file_path)
+    
     return document_name
 
-def process_image_file(file_path: str) -> None:
+def process_image_file(file_path: str) -> str:
     """Convert an image file to a PDF, perform OCR, and generate metadata."""
     print(f"Processing image file {file_path}...")
+
+    document_name = None  # Initialize document_name
 
     pdf_path = convert_image_to_pdf(file_path)
     if pdf_path:
         print(f"Converted image to PDF: {pdf_path}. Performing OCR and generating metadata...")
         pdf_path = ocr_pdf(pdf_path)  # Capture the full text from OCR
         document_name, metadata = generate_metadata_and_name(file_path)
+    
     return document_name
 
 def process_files_in_directory(directory_path: str, only_pdf: bool = False) -> None:
@@ -844,10 +867,10 @@ def generate_metadata_and_name(file_path):
 
     # Extract the document name from the result
     naming_content = naming_result.content
-    document_name = naming_content.split('\n')[0].strip()
+    temp_document_name = naming_content.split('\n')[0].strip()
 
     # Replace spaces in document name with underscores
-    document_name = document_name.replace(" ", "_")
+    document_name = temp_document_name.replace(" ", "_")
     # Determine the file extension
 
     # Load the metadata JSON
@@ -941,7 +964,7 @@ def load_params():
     return params
 
 def initialize_vectorstore(collection_name="docpoi"):
-    embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-MiniLM-L6-v2", model_kwargs={'device': 'cuda'})
+    embedding = embed_model
 
     vectorstore = ElasticsearchStore(
         es_url="http://localhost:9200", index_name=collection_name, embedding=embedding, strategy=ElasticsearchStore.ExactRetrievalStrategy() 
@@ -978,7 +1001,7 @@ def reset_vectorstore():
         record_manager,
         vectorstore,
         cleanup="full",
-        source_id_key="source",
+        source_id_key="document_id",
     )
     return "Vectorstore has been reset."
 
