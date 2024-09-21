@@ -63,8 +63,8 @@ from langchain_core.prompts import (
     MessagesPlaceholder,
 )
 from langchain.memory import ConversationBufferMemory
-#from TTS.tts.configs.xtts_config import XttsConfig
-#from TTS.tts.models.xtts import Xtts
+from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.models.xtts import Xtts
 
 import tkinter as tk
 from tkinter import filedialog
@@ -350,151 +350,151 @@ class DocPOI(BaseLoader):
             ) for page_number, chunk in enumerate(documents)
         ]
 
-# class TTSStreamer:
-#     def __init__(self, model_path, config_path, vocab_path, speaker_wav="thunder"):
-#         self.model_path = model_path
-#         self.config_path = config_path
-#         self.vocab_path = vocab_path
-#         self.speaker_wav = f"audio_samples\\{speaker_wav}.wav"
-#         self.model = self.load_model()
-#         self.stop_flag = threading.Event()  # To control stopping
-#         self.playback_thread = None
-#         self.text_chunks = []  # Store text chunks
+class TTSStreamer:
+    def __init__(self, model_path, config_path, vocab_path, speaker_wav="thunder"):
+        self.model_path = model_path
+        self.config_path = config_path
+        self.vocab_path = vocab_path
+        self.speaker_wav = f"audio_samples\\{speaker_wav}.wav"
+        self.model = self.load_model()
+        self.stop_flag = threading.Event()  # To control stopping
+        self.playback_thread = None
+        self.text_chunks = []  # Store text chunks
 
-#     def load_model(self):
-#         config = XttsConfig()
-#         config.load_json(self.config_path)
-#         model = Xtts.init_from_config(config)
-#         model.load_checkpoint(config, checkpoint_dir=self.model_path, eval=True, vocab_path=self.vocab_path)
-#         model.cuda()
-#         return model
+    def load_model(self):
+        config = XttsConfig()
+        config.load_json(self.config_path)
+        model = Xtts.init_from_config(config)
+        model.load_checkpoint(config, checkpoint_dir=self.model_path, eval=True, vocab_path=self.vocab_path)
+        model.cuda()
+        return model
 
-#     def unload_model(self):
-#         del self.model
-#         gc.collect()
-#         if torch.cuda.is_available():
-#             torch.cuda.empty_cache()
-#             gc.collect()
-#         print("Model unloaded and GPU memory cleared successfully.")
+    def unload_model(self):
+        del self.model
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
+        print("Model unloaded and GPU memory cleared successfully.")
 
-#     def estimate_times(self, text_chunk, avg_gen_time_per_char, avg_audio_time_per_char):
-#         gen_time = len(text_chunk) * avg_gen_time_per_char
-#         audio_duration = len(text_chunk) * avg_audio_time_per_char
-#         return gen_time, audio_duration
+    def estimate_times(self, text_chunk, avg_gen_time_per_char, avg_audio_time_per_char):
+        gen_time = len(text_chunk) * avg_gen_time_per_char
+        audio_duration = len(text_chunk) * avg_audio_time_per_char
+        return gen_time, audio_duration
 
-#     def split_text_into_sentences(self, text):
-#         # Split text into sentences using regular expressions
-#         sentences = re.split(r'(?<=[.!?]) +', text.strip())
+    def split_text_into_sentences(self, text):
+        # Split text into sentences using regular expressions
+        sentences = re.split(r'(?<=[.!?]) +', text.strip())
         
-#         final_sentences = []
-#         current_chunk = ""
+        final_sentences = []
+        current_chunk = ""
         
-#         for sentence in sentences:
-#             if len(current_chunk) + len(sentence) + 1 <= 200:  # +1 for the space or punctuation
-#                 if current_chunk:
-#                     current_chunk += " " + sentence
-#                 else:
-#                     current_chunk = sentence
-#             else:
-#                 if current_chunk:
-#                     final_sentences.append(current_chunk)
-#                 current_chunk = sentence
+        for sentence in sentences:
+            if len(current_chunk) + len(sentence) + 1 <= 200:  # +1 for the space or punctuation
+                if current_chunk:
+                    current_chunk += " " + sentence
+                else:
+                    current_chunk = sentence
+            else:
+                if current_chunk:
+                    final_sentences.append(current_chunk)
+                current_chunk = sentence
         
-#         if current_chunk:
-#             final_sentences.append(current_chunk)
+        if current_chunk:
+            final_sentences.append(current_chunk)
         
-#         return final_sentences
+        return final_sentences
 
-#     def generate_audio_chunk(self, chunk, chunk_index, audio_buffer, playback_event, avg_gen_time_per_char, avg_audio_time_per_char, total_gen_time, language, speed):
-#         if self.stop_flag.is_set():
-#             return
-#         est_gen_time, est_audio_duration = self.estimate_times(chunk, avg_gen_time_per_char, avg_audio_time_per_char)
-#         print(f"Chunk {chunk_index + 1} estimated generation time: {est_gen_time:.2f} seconds, estimated audio duration: {est_audio_duration:.2f} seconds")
+    def generate_audio_chunk(self, chunk, chunk_index, audio_buffer, playback_event, avg_gen_time_per_char, avg_audio_time_per_char, total_gen_time, language, speed):
+        if self.stop_flag.is_set():
+            return
+        est_gen_time, est_audio_duration = self.estimate_times(chunk, avg_gen_time_per_char, avg_audio_time_per_char)
+        print(f"Chunk {chunk_index + 1} estimated generation time: {est_gen_time:.2f} seconds, estimated audio duration: {est_audio_duration:.2f} seconds")
 
-#         print(f"Generating audio for chunk {chunk_index + 1}...")
-#         start_gen_time = time.time()
-#         outputs = self.model.synthesize(
-#             text=chunk,
-#             config=self.model.config,
-#             speaker_wav=self.speaker_wav,
-#             gpt_cond_len=10,
-#             language=language,
-#             speed=speed
-#         )
-#         end_gen_time = time.time()
-#         generation_time = end_gen_time - start_gen_time
-#         total_gen_time[0] += generation_time
-#         print(f"Chunk {chunk_index + 1} generated in {generation_time:.2f} seconds (estimated: {est_gen_time:.2f} seconds)")
+        print(f"Generating audio for chunk {chunk_index + 1}...")
+        start_gen_time = time.time()
+        outputs = self.model.synthesize(
+            text=chunk,
+            config=self.model.config,
+            speaker_wav=self.speaker_wav,
+            gpt_cond_len=10,
+            language=language,
+            speed=speed
+        )
+        end_gen_time = time.time()
+        generation_time = end_gen_time - start_gen_time
+        total_gen_time[0] += generation_time
+        print(f"Chunk {chunk_index + 1} generated in {generation_time:.2f} seconds (estimated: {est_gen_time:.2f} seconds)")
 
-#         wav_data = outputs['wav']
-#         temp_output_file = f'temp_output_{chunk_index}.wav'
-#         sf.write(temp_output_file, wav_data, 22050)
-#         line_audio = AudioSegment.from_wav(temp_output_file)
+        wav_data = outputs['wav']
+        temp_output_file = f'temp_output_{chunk_index}.wav'
+        sf.write(temp_output_file, wav_data, 22050)
+        line_audio = AudioSegment.from_wav(temp_output_file)
 
-#         actual_audio_duration = len(line_audio) / 1000.0
-#         print(f"Chunk {chunk_index + 1} actual audio duration: {actual_audio_duration:.2f} seconds (estimated: {est_audio_duration:.2f} seconds)")
+        actual_audio_duration = len(line_audio) / 1000.0
+        print(f"Chunk {chunk_index + 1} actual audio duration: {actual_audio_duration:.2f} seconds (estimated: {est_audio_duration:.2f} seconds)")
 
-#         audio_buffer[chunk_index] = line_audio
-#         print(f"Chunk {chunk_index + 1} audio saved and buffered")
+        audio_buffer[chunk_index] = line_audio
+        print(f"Chunk {chunk_index + 1} audio saved and buffered")
 
-#         playback_event.set()
+        playback_event.set()
 
-#     def stream_audio_with_buffering(self, text, language="en", speed=1.2, speaker=None, fireup_delay=1.0, avg_gen_time_per_char=0.08058659382140704, avg_audio_time_per_char=0.1064346054068992):
-#         self.stop_flag.clear()  # Clear the stop flag at the start
-#         if speaker:
-#             self.speaker_wav = f"audio_samples\\{speaker}.wav"
+    def stream_audio_with_buffering(self, text, language="en", speed=1.2, speaker=None, fireup_delay=1.0, avg_gen_time_per_char=0.08058659382140704, avg_audio_time_per_char=0.1064346054068992):
+        self.stop_flag.clear()  # Clear the stop flag at the start
+        if speaker:
+            self.speaker_wav = f"audio_samples\\{speaker}.wav"
 
-#         print("Starting the audio streaming process...")
-#         start_time = time.time()
+        print("Starting the audio streaming process...")
+        start_time = time.time()
 
-#         self.text_chunks = self.split_text_into_sentences(text)  # Store text chunks
-#         audio_buffer = [None] * len(self.text_chunks)
-#         playback_events = [threading.Event() for _ in self.text_chunks]
-#         total_gen_time = [0]
+        self.text_chunks = self.split_text_into_sentences(text)  # Store text chunks
+        audio_buffer = [None] * len(self.text_chunks)
+        playback_events = [threading.Event() for _ in self.text_chunks]
+        total_gen_time = [0]
 
-#         def start_playback_after_delay():
-#             print(f"Waiting {fireup_delay:.2f} seconds before starting playback...")
-#             time.sleep(fireup_delay)
-#             print("Fireup delay is over, starting playback...")
-#             for chunk_index in range(len(self.text_chunks)):
-#                 if self.stop_flag.is_set():
-#                     break
-#                 playback_events[chunk_index].wait()
-#                 if audio_buffer[chunk_index] is not None:
-#                     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
-#                         temp_output_file = temp_file.name
-#                     self.play_audio_segment(audio_buffer[chunk_index], temp_output_file)
-#                     if os.path.exists(temp_output_file):
-#                         os.remove(temp_output_file)
+        def start_playback_after_delay():
+            print(f"Waiting {fireup_delay:.2f} seconds before starting playback...")
+            time.sleep(fireup_delay)
+            print("Fireup delay is over, starting playback...")
+            for chunk_index in range(len(self.text_chunks)):
+                if self.stop_flag.is_set():
+                    break
+                playback_events[chunk_index].wait()
+                if audio_buffer[chunk_index] is not None:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+                        temp_output_file = temp_file.name
+                    self.play_audio_segment(audio_buffer[chunk_index], temp_output_file)
+                    if os.path.exists(temp_output_file):
+                        os.remove(temp_output_file)
 
-#         self.playback_thread = threading.Thread(target=start_playback_after_delay)
-#         self.playback_thread.start()
+        self.playback_thread = threading.Thread(target=start_playback_after_delay)
+        self.playback_thread.start()
 
-#         for chunk_index, chunk in enumerate(self.text_chunks):
-#             if self.stop_flag.is_set():
-#                 break
+        for chunk_index, chunk in enumerate(self.text_chunks):
+            if self.stop_flag.is_set():
+                break
         
-#             print(f"Processing chunk {chunk_index + 1}/{len(self.text_chunks)}: '{chunk}'")
-#             self.generate_audio_chunk(chunk, chunk_index, audio_buffer, playback_events[chunk_index], avg_gen_time_per_char, avg_audio_time_per_char, total_gen_time, language, speed)
+            print(f"Processing chunk {chunk_index + 1}/{len(self.text_chunks)}: '{chunk}'")
+            self.generate_audio_chunk(chunk, chunk_index, audio_buffer, playback_events[chunk_index], avg_gen_time_per_char, avg_audio_time_per_char, total_gen_time, language, speed)
 
-#         self.playback_thread.join()
-#         print("Audio streaming process completed.")
-#         print(f"Total generation time: {total_gen_time[0]:.2f} seconds")
+        self.playback_thread.join()
+        print("Audio streaming process completed.")
+        print(f"Total generation time: {total_gen_time[0]:.2f} seconds")
 
-#     def stop_streaming(self):
-#         """Stops the audio streaming process."""
-#         self.stop_flag.set()
-#         if self.playback_thread and self.playback_thread.is_alive():
-#             self.playback_thread.join()
-#         # Remove all temporary files
-#         for chunk_index in range(len(self.text_chunks)):
-#             temp_output_file = f'temp_output_{chunk_index}.wav'
-#             if os.path.exists(temp_output_file):
-#                 os.remove(temp_output_file)
+    def stop_streaming(self):
+        """Stops the audio streaming process."""
+        self.stop_flag.set()
+        if self.playback_thread and self.playback_thread.is_alive():
+            self.playback_thread.join()
+        # Remove all temporary files
+        for chunk_index in range(len(self.text_chunks)):
+            temp_output_file = f'temp_output_{chunk_index}.wav'
+            if os.path.exists(temp_output_file):
+                os.remove(temp_output_file)
 
-#     def play_audio_segment(self, audio_segment, temp_output_file):
-#         audio_segment.export(temp_output_file, format="wav")
-#         play(AudioSegment.from_wav(temp_output_file))
+    def play_audio_segment(self, audio_segment, temp_output_file):
+        audio_segment.export(temp_output_file, format="wav")
+        play(AudioSegment.from_wav(temp_output_file))
 
 class DocumentAssistant:
     def __init__(self, model_name, temperature=0.9):
@@ -1221,26 +1221,26 @@ def bot_response(history):
     
     # Commented out TTS related code
     # If use_voiceover is True, run the TTS streamer in a separate thread
-    # if params["use_voiceover"]:
-    #     tts_thread = threading.Thread(
-    #         target=tts_streamer.stream_audio_with_buffering,
-    #         args=(full_response,),
-    #         kwargs={
-    #             "language": params["language"],
-    #             "speed": params["voiceover_speed"],
-    #             "speaker": params["speaker"],
-    #             "fireup_delay": params["fireup_speed"]
-    #         }
-    #     )
-    #     tts_thread.start()
+    if params["use_voiceover"]:
+        tts_thread = threading.Thread(
+            target=tts_streamer.stream_audio_with_buffering,
+            args=(full_response,),
+            kwargs={
+                "language": params["language"],
+                "speed": params["voiceover_speed"],
+                "speaker": params["speaker"],
+                "fireup_delay": params["fireup_speed"]
+            }
+        )
+        tts_thread.start()
 
     # Initialize the bot's response in the history
     history[-1][1] = ""
 
     # Stream the response character by character
     for character in full_response:
-        # if tts_streamer.stop_flag.is_set():  # Check if stop was requested
-        #     break
+        if tts_streamer.stop_flag.is_set():  # Check if stop was requested
+            break
         history[-1][1] += character
         time.sleep(0.01)  # Adjust the speed of streaming if needed
         yield history, None
@@ -1249,12 +1249,12 @@ def bot_response(history):
     yield history, gr.File(value=downloadable_files)
 
     # Wait for the TTS thread to complete if it was started
-    # if params["use_voiceover"]:
-    #     tts_thread.join()
+    if params["use_voiceover"]:
+        tts_thread.join()
 
-# def stop_all_streaming():
-#     """Stops all ongoing text and voiceover streaming."""
-#     tts_streamer.stop_streaming()
+def stop_all_streaming():
+    """Stops all ongoing text and voiceover streaming."""
+    tts_streamer.stop_streaming()
 
 def reset_conversation():
     """Resets the conversation by clearing the memory and chat history."""
@@ -1680,12 +1680,12 @@ if check_setup():
 
     # Get the value of the key 'directory' and set it as DIRECTORY_PATH
     DIRECTORY_PATH = params.get("directory", "data")
-    # tts_streamer = TTSStreamer(model_path="XTTS-v2", config_path="XTTS-v2\\config.json", vocab_path="XTTS-v2\\vocab.json")
-    # # Check if use_voiceover is True
-    # if params.get("use_voiceover", False):
-    #     whisper_model = whisper.load_model("small")
-    #     tts_streamer = TTSStreamer(model_path="XTTS-v2", config_path="XTTS-v2\\config.json", vocab_path="XTTS-v2\\vocab.json")
-    #     list_microphones()
+    tts_streamer = TTSStreamer(model_path="XTTS-v2", config_path="XTTS-v2\\config.json", vocab_path="XTTS-v2\\vocab.json")
+    # Check if use_voiceover is True
+    if params.get("use_voiceover", False):
+        whisper_model = whisper.load_model("small")
+        tts_streamer = TTSStreamer(model_path="XTTS-v2", config_path="XTTS-v2\\config.json", vocab_path="XTTS-v2\\vocab.json")
+        list_microphones()
 
     assistant = DocumentAssistant(model_name="llama3.1:8b", temperature=0.9)
     history = []  # Initialize empty history

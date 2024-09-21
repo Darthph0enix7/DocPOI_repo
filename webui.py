@@ -9,7 +9,8 @@ import requests
 script_dir = os.getcwd()
 repo_dir = os.path.join(script_dir)
 remote_url = "https://github.com/Darthph0enix7/DocPOI_repo.git"
-tts_repo_dir = os.path.join(repo_dir, "XTTS-v2")
+xtts_repo_dir = os.path.join(repo_dir, "XTTS-v2")
+tts_repo_dir = os.path.join(repo_dir, "TTS")
 
 
 def run_cmd(cmd, capture_output=False, env=None):
@@ -71,9 +72,15 @@ def install_dependencies():
         run_cmd("git lfs install")
     
     # Clone the XTTS-v2 repository if it doesn't already exist
+    if not os.path.exists(xtts_repo_dir):
+        print(f"Cloning the XTTS-v2 repository into {xtts_repo_dir}...")
+        run_cmd(f"git clone https://huggingface.co/coqui/XTTS-v2 {xtts_repo_dir}")
+    else:
+        print("XTTS-v2 repository already exists.")
+        # Clone the XTTS-v2 repository if it doesn't already exist
     if not os.path.exists(tts_repo_dir):
-        print(f"Cloning the XTTS-v2 repository into {tts_repo_dir}...")
-        run_cmd(f"git clone https://huggingface.co/coqui/XTTS-v2 {tts_repo_dir}")
+        print(f"Cloning the Coqui-tts repository into {tts_repo_dir}...")
+        run_cmd(f"git clone https://github.com/coqui-ai/TTS.git {tts_repo_dir}")
     else:
         print("XTTS-v2 repository already exists.")
 
@@ -166,6 +173,11 @@ def update_dependencies():
     # Apply stashed files
     run_cmd("git stash pop")
     
+    # Resolve any merge conflicts by accepting the changes from the remote repository
+    run_cmd("git checkout --theirs .")
+    run_cmd("git add .")
+    run_cmd("git commit -m 'Resolved merge conflicts by accepting remote changes'")
+    
     # Install dependencies
     run_cmd("pip install -r requirements.txt")
     
@@ -222,7 +234,7 @@ if __name__ == "__main__":
         run_ollama()
     else:
         # If webui has already been installed, skip and run
-        if not os.path.exists(tts_repo_dir):
+        if not os.path.exists(xtts_repo_dir):
             install_dependencies()
             os.chdir(script_dir)
 
