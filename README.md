@@ -1,7 +1,5 @@
 # DocPOI
 
-## !! Speech Function is disabled for a short time pls wait for next implimentation
-
 **Contact**  
 Please contact me or our group for any issues, feature recommendations, ideas, or even criticism of the code. Everything is welcome!  
 You can join our Discord for the best experience.  
