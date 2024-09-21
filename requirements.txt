@@ -67,6 +67,8 @@ umap-learn>=0.5.1
 pandas>=1.4,<2.0
 # deps for training
 matplotlib>=3.7.0
+# coqui stack
+trainer>=0.0.36
 # config management
 coqpit>=0.0.16
 # chinese g2p deps
