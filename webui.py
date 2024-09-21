@@ -80,7 +80,7 @@ def install_dependencies():
         # Clone the XTTS-v2 repository if it doesn't already exist
     if not os.path.exists(tts_repo_dir):
         print(f"Cloning the Coqui-tts repository into {tts_repo_dir}...")
-        run_cmd(f"git clone https://github.com/coqui-ai/TTS.git {tts_repo_dir}")
+        run_cmd(f"git clone https://github.com/Darthph0enix7/TTS.git {tts_repo_dir}")
     else:
         print("XTTS-v2 repository already exists.")
 
