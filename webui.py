@@ -162,21 +162,9 @@ def update_dependencies():
     # Ensure the repository is connected to the remote
     run_cmd("git fetch origin")
     
-    # Stash untracked files
-    run_cmd("git add .")
-    run_cmd("git stash --include-untracked")
-    
     # Reset any local changes and pull the latest version
     run_cmd("git reset --hard origin/main")
     run_cmd("git pull origin main --force")
-    
-    # Apply stashed files
-    run_cmd("git stash pop")
-    
-    # Resolve any merge conflicts by accepting the changes from the remote repository
-    run_cmd("git checkout --theirs .")
-    run_cmd("git add .")
-    run_cmd("git commit -m 'Resolved merge conflicts by accepting remote changes'")
     
     # Install dependencies
     run_cmd("pip install -r requirements.txt")
