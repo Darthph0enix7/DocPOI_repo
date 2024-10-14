@@ -53,7 +53,7 @@ call "%CONDA_ROOT_PREFIX%\condabin\conda.bat" activate "%INSTALL_ENV_DIR%" || ( 
 @rem Check if requests is installed; if not, install it
 call python -c "import requests" 2>nul || (
     echo Installing requests module...
-    call python -m pip install requests || ( echo. && echo Failed to install requests. && goto end )
+    call python -m pip install requests psutil || ( echo. && echo Failed to install requests. && goto end )
 )
 
 @rem run the Python script

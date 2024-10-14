@@ -70,7 +70,7 @@ source "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh"
 conda activate "$INSTALL_ENV_DIR"
 
 # Ensure necessary Python modules are installed
-python -c "import requests" 2>/dev/null || python -m pip install requests
+python -c "import requests" 2>/dev/null || python -m pip install requests psutil
 
 # Run the main Python script
 python setup.py "$@"

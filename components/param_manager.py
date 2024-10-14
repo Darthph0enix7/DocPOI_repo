@@ -8,11 +8,15 @@ class ParamManager:
     def __init__(self, file_path='params.json', defaults=None):
         self.file_path = file_path
         # If defaults are provided, initialize with them; otherwise, start with an empty dictionary
-        self.params = defaults if defaults else {}
+        self.params = {}
         # Create the params.json file if it doesn't exist
         self._ensure_file_exists()
         # Load parameters from file if it already exists
         self._load_params()
+        # Update with defaults after loading existing params to avoid overwriting existing values
+        if defaults:
+            for key, value in defaults.items():
+                self.params.setdefault(key, value)
 
     def _ensure_file_exists(self):
         if not os.path.exists(self.file_path):
@@ -34,8 +38,11 @@ class ParamManager:
     def get_param(self, key, default=None):
         return self.params.get(key, default)
 
-    def set_param(self, key, value):
-        self.params[key] = value
+    def set_param(self, key, value, default=None):
+        if key not in self.params and default is not None:
+            self.params[key] = default
+        else:
+            self.params[key] = value
         self._save_params()
 
     def _save_params(self):
@@ -50,9 +57,9 @@ class ParamManager:
 
 
 # Example usage of this class:
-# param_manager = ParamManager(defaults={'param1': 42, 'param2': 'Hello World'})
-# value = param_manager.get_param('param1')
-# param_manager.set_param('new_param', 3.14)
+# param_manager = ParamManager()
+# value = param_manager.get_param('param1', default=42)
+# param_manager.set_param('new_param', 3.14, default=0)
 
 # The default parameters would be accessible as globals once you import ParamManager and instantiate it.
 
@@ -62,7 +69,7 @@ class ParamManager:
 
 # from param_manager import ParamManager
 # 
-# param_manager = ParamManager(defaults={'language': 'English', 'version': 1.0})
+# param_manager = ParamManager()
 # # Accessing parameters globally
 # global_params = param_manager.get_all_params()
 # 
