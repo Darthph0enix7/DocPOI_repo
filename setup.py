@@ -216,8 +216,17 @@ def install_tesseract():
     else:
         print(f"Tessdata is already downloaded at {tessdata_path}.")
 
+def install_requirements():
+    requirements_path = os.path.join(repo_dir, 'requirements.txt')
+    if os.path.exists(requirements_path):
+        print("Installing requirements from requirements.txt...")
+        run_cmd(f"pip install -r {requirements_path}")
+    else:
+        print("requirements.txt not found. Skipping installation of requirements.")
+        
 def initial_setup():
     # Select your GPU or, choose to run in CPU mode
+    print()
     print("What is your GPU")
     print()
     print("A) NVIDIA")
@@ -255,13 +264,16 @@ def initial_setup():
         print("Invalid choice. Exiting...")
         sys.exit()
 
+    # Install requirements
+    install_requirements()
+
     # Install Poppler
     install_poppler()
 
     # Install Tesseract
     install_tesseract()
 
-    #get tessdata
+    #install the requirements.txt
 
     # Mark setup as completed
     with open(setup_flag_file, "w") as f:
