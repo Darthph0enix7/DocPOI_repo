@@ -217,6 +217,12 @@ def install_tesseract():
         print(f"Tessdata is already downloaded at {tessdata_path}.")
 
 def install_requirements():
+    if platform.system() == 'Linux':
+        # Install additional packages on Linux
+        print("Installing additional packages on Linux...")
+        run_cmd("sudo apt-get install -y libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0 libegl1-mesa-dev libnvidia-gl-535 libglvnd-dev")
+        run_cmd("sudo apt-get install -y ffmpeg libav-tools")
+
     requirements_path = os.path.join(repo_dir, 'requirements.txt')
     if os.path.exists(requirements_path):
         print("Installing requirements from requirements.txt...")

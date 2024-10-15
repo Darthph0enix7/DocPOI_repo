@@ -6,10 +6,6 @@ from pdf2image import convert_from_path
 from PyPDF2 import PdfWriter, PdfReader
 import io
 import logging
-import torch
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
 
 # Constants
 tessdata_dir = os.path.join("installer_files", "tessdata")
