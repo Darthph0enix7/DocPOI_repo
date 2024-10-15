@@ -154,6 +154,68 @@ def handle_selected_gpu(gpu_index):
         print("Unsupported operating system. Exiting...")
         sys.exit()
 
+def install_poppler():
+    if platform.system() == 'Windows':
+        install_dir = os.getcwd()
+        poppler_path = os.path.join(install_dir, 'poppler-24.07.0')
+        poppler_download_url = 'https://github.com/oschwartz10612/poppler-windows/releases/download/v24.07.0-0/Release-24.07.0-0.zip'
+        poppler_zip_path = os.path.join(install_dir, 'poppler.zip')
+
+        if not os.path.exists(poppler_path):
+            print(f"Downloading Poppler from {poppler_download_url} to {poppler_zip_path}")
+            run_cmd(f"curl -L -o {poppler_zip_path} {poppler_download_url}")
+            print(f"Unzipping Poppler to {install_dir}")
+            run_cmd(f"tar -xf {poppler_zip_path} -C {install_dir}")
+        else:
+            print(f"Poppler is already unzipped at {poppler_path}.")
+    elif platform.system() == 'Linux':
+        poppler_installed = run_cmd("command -v pdftocairo", capture_output=True).returncode == 0
+
+        if not poppler_installed:
+            print("Installing Poppler utilities...")
+            run_cmd("sudo apt-get install -y poppler-utils")
+        else:
+            print("Poppler utilities are already installed.")
+    else:
+        print("Unsupported operating system for Poppler installation. Exiting...")
+        sys.exit()
+
+def install_tesseract():
+    install_dir = os.path.join(os.getcwd(), 'installer_files')
+    os.makedirs(install_dir, exist_ok=True)
+
+    if platform.system() == 'Windows':
+        tesseract_path = os.path.join(os.environ['ProgramFiles'], 'Tesseract-OCR', 'tesseract.exe')
+        tesseract_download_url = 'https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.4.0.20240606.exe'
+        tesseract_installer_path = os.path.join(install_dir, 'tesseract_installer.exe')
+
+        if not os.path.exists(tesseract_path):
+            print(f"Downloading Tesseract from {tesseract_download_url} to {tesseract_installer_path}")
+            run_cmd(f"curl -L -o {tesseract_installer_path} {tesseract_download_url}")
+            print("Installing Tesseract silently")
+            run_cmd(f"{tesseract_installer_path} /S")
+        else:
+            print(f"Tesseract is already installed at {tesseract_path}.")
+    elif platform.system() == 'Linux':
+        tesseract_installed = run_cmd("command -v tesseract", capture_output=True).returncode == 0
+
+        if not tesseract_installed:
+            print("Installing Tesseract OCR...")
+            run_cmd("sudo apt-get install -y tesseract-ocr")
+        else:
+            print("Tesseract is already installed.")
+
+    # Download tessdata
+    tessdata_repo_url = 'https://github.com/Darthph0enix7/Tesseract_Tessdata_current.git'
+    tessdata_path = os.path.join(install_dir, 'tessdata')
+
+    if not os.path.exists(tessdata_path):
+        print(f"Cloning tessdata repository from {tessdata_repo_url} to {tessdata_path}")
+        run_cmd(f"git clone {tessdata_repo_url} {tessdata_path}")
+        print("Tessdata successfully cloned.")
+    else:
+        print(f"Tessdata is already downloaded at {tessdata_path}.")
+
 def initial_setup():
     # Select your GPU or, choose to run in CPU mode
     print("What is your GPU")
@@ -192,6 +254,14 @@ def initial_setup():
     else:
         print("Invalid choice. Exiting...")
         sys.exit()
+
+    # Install Poppler
+    install_poppler()
+
+    # Install Tesseract
+    install_tesseract()
+
+    #get tessdata
 
     # Mark setup as completed
     with open(setup_flag_file, "w") as f:
