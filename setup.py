@@ -95,14 +95,64 @@ def select_gpu(system_info):
         gpu_choice = input("Enter the number of the GPU you want to use (or press Enter to use all GPUs): ")
         if gpu_choice.isdigit() and 0 <= int(gpu_choice) < system_info["gpu_count"]:
             selected_gpu = int(gpu_choice)
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(selected_gpu)
+            param_manager.set_param("selected_gpu", selected_gpu)
             print(f"Using GPU: {system_info['gpu_info'][selected_gpu]['name']}")
+            handle_selected_gpu(selected_gpu)  # Call the function with the GPU index
         else:
             print("Invalid choice. Using all GPUs.")
+            param_manager.set_param("selected_gpu", "all")
+            handle_selected_gpu("all")  # Call the function with "all"
     elif system_info["gpu_count"] == 1:
         print(f"Using GPU: {system_info['gpu_info'][0]['name']}")
+        param_manager.set_param("selected_gpu", 0)
+        handle_selected_gpu(0)  # Call the function with the GPU index
     else:
         print("No GPU detected. Running in CPU mode.")
+        param_manager.set_param("selected_gpu", "cpu")
+
+def handle_selected_gpu(gpu_index):
+    if platform.system() == "Windows":
+        # Set CUDA_VISIBLE_DEVICES in the global system environment on Windows
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_index) if gpu_index != "all" else ",".join(map(str, range(psutil.cpu_count(logical=True))))
+        print(f"Set CUDA_VISIBLE_DEVICES to {os.environ['CUDA_VISIBLE_DEVICES']} on Windows")
+    elif platform.system() == "Linux":
+        # Edit the /etc/systemd/system/ollama.service file on Linux
+        service_file = "/etc/systemd/system/ollama.service"
+        
+        # Read the current content of the service file
+        with open(service_file, "r") as file:
+            lines = file.readlines()
+
+        # Prepare the new content
+        new_lines = []
+        service_section_found = False
+        for line in lines:
+            if line.strip() == "[Service]":
+                service_section_found = True
+            if service_section_found and line.startswith("Environment=\"CUDA_VISIBLE_DEVICES="):
+                continue  # Skip the existing CUDA_VISIBLE_DEVICES line
+            new_lines.append(line)
+            if service_section_found and line.strip() == "":
+                # Add the new CUDA_VISIBLE_DEVICES line after the [Service] section
+                cuda_visible_devices = str(gpu_index) if gpu_index != "all" else ",".join(map(str, range(psutil.cpu_count(logical=True))))
+                new_lines.append(f'Environment="CUDA_VISIBLE_DEVICES={cuda_visible_devices}"\n')
+                service_section_found = False
+
+        # Write the new content to a temporary file
+        temp_file = "/tmp/ollama.service"
+        with open(temp_file, "w") as file:
+            file.writelines(new_lines)
+
+        # Move the temporary file to the service file location with sudo
+        run_cmd(f"sudo mv {temp_file} {service_file}")
+
+        # Reload the systemd daemon and restart the service
+        run_cmd("sudo systemctl daemon-reload")
+        run_cmd("sudo systemctl restart ollama.service")
+        print(f"Set CUDA_VISIBLE_DEVICES to {cuda_visible_devices} in /etc/systemd/system/ollama.service on Linux")
+    else:
+        print("Unsupported operating system. Exiting...")
+        sys.exit()
 
 def initial_setup():
     # Select your GPU or, choose to run in CPU mode
@@ -119,29 +169,35 @@ def initial_setup():
     if gpuchoice == "a":
         run_cmd("conda install -y -k nvidia/label/cuda-12.1.0::cuda-toolkit")
         run_cmd("conda install -y -k pytorch torchvision torchaudio pytorch-cuda=12.1 ninja git curl -c pytorch -c nvidia")
+        
+        # Gather system information after installing PyTorch
+        system_info = gather_system_info()
+
+        # Check if the system meets the recommended specs
+        check_recommended_specs(system_info)
+
+        # Allow the user to select a GPU if multiple are available
+        select_gpu(system_info)
     elif gpuchoice == "b":
         print("AMD GPUs are not supported yet. Try CPU installation. Exiting...")
         sys.exit()
     elif gpuchoice == "c" or gpuchoice == "d":
         run_cmd("conda install -y -k pytorch torchvision torchaudio cpuonly ninja git curl -c pytorch")
+        
+        # Gather system information after installing PyTorch
+        system_info = gather_system_info()
+
+        # Check if the system meets the recommended specs
+        check_recommended_specs(system_info)
     else:
         print("Invalid choice. Exiting...")
         sys.exit()
-
-    # Gather system information after installing PyTorch
-    system_info = gather_system_info()
-
-    # Check if the system meets the recommended specs
-    check_recommended_specs(system_info)
-
-    # Allow the user to select a GPU if multiple are available
-    select_gpu(system_info)
 
     # Mark setup as completed
     with open(setup_flag_file, "w") as f:
         f.write("Setup completed")
 
-def run_model():
+def run_main():
     os.chdir(repo_dir)
     run_cmd("python main.py")  # put your flags here!
 
@@ -154,4 +210,4 @@ if __name__ == "__main__":
         initial_setup()
 
     # Run the model
-    run_model()
+    run_main()

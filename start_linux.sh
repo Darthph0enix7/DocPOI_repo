@@ -27,6 +27,12 @@ INSTALL_ENV_DIR="$INSTALL_DIR/env"
 MINICONDA_DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-py310_23.3.1-0-Linux-${OS_ARCH}.sh"
 conda_exists="F"
 
+# Ensure curl is installed
+if ! command -v curl &> /dev/null; then
+    echo "curl is not installed. Installing curl..."
+    sudo apt-get update && sudo apt-get install -y curl
+fi
+
 # Check if Conda needs to be installed
 if "$CONDA_ROOT_PREFIX/bin/conda" --version &>/dev/null; then 
     conda_exists="T"
@@ -71,6 +77,12 @@ conda activate "$INSTALL_ENV_DIR"
 
 # Ensure necessary Python modules are installed
 python -c "import requests" 2>/dev/null || python -m pip install requests psutil
+
+# Check if ollama is installed, if not, install it
+if ! command -v ollama &> /dev/null; then
+    echo "ollama is not installed. Installing ollama..."
+    curl -fsSL https://ollama.com/install.sh | sh
+fi
 
 # Run the main Python script
 python setup.py "$@"
