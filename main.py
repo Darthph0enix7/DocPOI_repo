@@ -78,10 +78,13 @@ print(f"Using device: {device}")
 # Constants
 POPPLER_PATH = r'.\installer_files\poppler-24.07.0\Library\bin'
 program_files = os.environ.get('ProgramFiles')
-PYTESSERACT_CMD = os.path.join(program_files, 'Tesseract-OCR', 'tesseract.exe')
 tessdata_dir = os.path.join("installer_files", "tessdata")
 tessdata_dir_config = f'--tessdata-dir "{tessdata_dir}"'
 
+if platform.system() == 'Windows':
+    program_files = os.environ.get('PROGRAMFILES', 'C:\\Program Files')
+    PYTESSERACT_CMD = os.path.join(program_files, 'Tesseract-OCR', 'tesseract.exe')
+    pytesseract.pytesseract.tesseract_cmd = PYTESSERACT_CMD
 
 PARAM_FILE = "params.json"
 LOG_FILE = "process.log"
@@ -229,8 +232,7 @@ Provide only the new name in the following format with no filter or extra explan
 # Set up logging
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
-# Initialize libraries
-pytesseract.pytesseract.tesseract_cmd = PYTESSERACT_CMD
+
 
 class DocPOIDirectoryLoader(BaseLoader):
     def __init__(self, directory_path: str, metadata_path: Optional[str] = None) -> None:
