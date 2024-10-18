@@ -4,3 +4,6 @@ params.json
 test.ipynb
 setup_completed.flag
 installer_files
+setup.flag
+.gradio
+__pycache__
