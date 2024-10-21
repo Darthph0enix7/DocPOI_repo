@@ -1,6 +1,3 @@
-# Let's call the parameter-saving class `ParamManager`. This will be defined in a separate file.
-# Here is the full implementation of the class in a Python file called "param_manager.py":
-
 import json
 import os
 

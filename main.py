@@ -2,8 +2,8 @@ from fastapi import FastAPI, Request, Response
 import gradio as gr
 import uvicorn
 import os
-from setup_interface import setup_interface
-from main_interface import main_interface_blocks
+from components.setup_interface import setup_interface
+from components.main_interface import main_interface_blocks
 import logging
 
 # Configure logging
@@ -15,9 +15,7 @@ def is_setup_needed():
     # Check if the setup.flag file exists
     return not os.path.exists("setup.flag")
 
-# Define Main Screen Function
-def main_interface():
-    return "Welcome to the Main Screen!"
+
 
 # Create FastAPI app instance
 app = FastAPI()
