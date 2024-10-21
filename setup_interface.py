@@ -1,12 +1,36 @@
 import gradio as gr
 from components.param_manager import ParamManager
+from tkinter import Tk, filedialog
 
 # Instantiate ParamManager
 param_manager = ParamManager()
 
+# Function to handle directory selection
+def get_folder_path(folder_path: str = "") -> str:
+    if not isinstance(folder_path, str):
+        raise TypeError("folder_path must be a string")
+
+    try:
+        root = Tk()
+        root.withdraw()
+        root.wm_attributes("-topmost", 1)
+        selected_folder = filedialog.askdirectory(initialdir=folder_path or ".")
+        root.destroy()
+        return selected_folder or folder_path
+    except Exception as e:
+        raise RuntimeError(f"Error initializing folder dialog: {e}") from e
+
+# Function to handle directory selection and update the path
+def select_directory():
+    selected_directory = get_folder_path()
+    if selected_directory:
+        param_manager.set_param('directory', selected_directory)
+        return f"Directory selected: {selected_directory}"
+    else:
+        return "No directory selected"
+
 # Define Setup Screen Function for OpenAI API
 def setup_openai_api(name, model_name, base_url, api_key, use_embeddings, copy_docs, directory, language, send_config):
-    # Save the user's inputs using ParamManager
     param_manager.set_param('user_name', name)
     param_manager.set_param('agent_type', 'OpenAI API')
     param_manager.set_param('model_name', model_name)
@@ -14,10 +38,9 @@ def setup_openai_api(name, model_name, base_url, api_key, use_embeddings, copy_d
     param_manager.set_param('api_key', api_key)
     param_manager.set_param('use_embeddings', use_embeddings)
     param_manager.set_param('copy_docs', copy_docs)
-    param_manager.set_param('directory', directory)
+    param_manager.set_param('directory', directory.replace("Directory selected: ", ""))
     param_manager.set_param('language', language)
     param_manager.set_param('send_config', send_config)
-    # After the setup, create the setup flag file and return a completion message
     with open("setup.flag", "w") as f:
         f.write("setup complete with OpenAI API")
     setup_complete_message = f"Setup complete! Welcome, {name}. You selected OpenAI API. Please refresh the page to proceed to the main screen."
@@ -25,14 +48,12 @@ def setup_openai_api(name, model_name, base_url, api_key, use_embeddings, copy_d
 
 # Define Setup Screen Function for ReAct agent
 def setup_react_agent(name, copy_docs, directory, language, send_config):
-    # Save the user's inputs using ParamManager
     param_manager.set_param('user_name', name)
     param_manager.set_param('agent_type', 'ReAct agent')
     param_manager.set_param('copy_docs', copy_docs)
-    param_manager.set_param('directory', directory)
+    param_manager.set_param('directory', directory.replace("Directory selected: ", ""))
     param_manager.set_param('language', language)
     param_manager.set_param('send_config', send_config)
-    # After the setup, create the setup flag file and return a completion message
     with open("setup.flag", "w") as f:
         f.write("setup complete with ReAct agent")
     setup_complete_message = f"Setup complete! Welcome, {name}. You selected ReAct agent. Please refresh the page to proceed to the main screen."
@@ -40,14 +61,12 @@ def setup_react_agent(name, copy_docs, directory, language, send_config):
 
 # Define Setup Screen Function for LLMChain
 def setup_llmchain(name, copy_docs, directory, language, send_config):
-    # Save the user's inputs using ParamManager
     param_manager.set_param('user_name', name)
     param_manager.set_param('agent_type', 'LLMChain')
     param_manager.set_param('copy_docs', copy_docs)
-    param_manager.set_param('directory', directory)
+    param_manager.set_param('directory', directory.replace("Directory selected: ", ""))
     param_manager.set_param('language', language)
     param_manager.set_param('send_config', send_config)
-    # After the setup, create the setup flag file and return a completion message
     with open("setup.flag", "w") as f:
         f.write("setup complete with LLMChain")
     setup_complete_message = f"Setup complete! Welcome, {name}. You selected LLMChain. Please refresh the page to proceed to the main screen."
@@ -152,8 +171,9 @@ with gr.Blocks(theme=gr.themes.Soft(), css="""
     llmchain_btn.click(fn=lambda: select_agent("LLMChain"), inputs=None, outputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox, setup_output, submit_btn, agent_type_state, agent_info])
     openai_btn.click(fn=lambda: select_agent("OpenAI API"), inputs=None, outputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox, setup_output, submit_btn, agent_type_state, agent_info])
     
-    submit_btn.click(fn=setup_openai_api, inputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox], outputs=setup_output)
-    submit_btn.click(fn=setup_react_agent, inputs=[name_input, copy_docs_checkbox, directory_button, language_input, send_config_checkbox], outputs=setup_output)
-    submit_btn.click(fn=setup_llmchain, inputs=[name_input, copy_docs_checkbox, directory_button, language_input, send_config_checkbox], outputs=setup_output)
+    directory_button.click(fn=select_directory, inputs=None, outputs=setup_output)
+    submit_btn.click(fn=setup_openai_api, inputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, setup_output, language_input, send_config_checkbox], outputs=setup_output)
+    submit_btn.click(fn=setup_react_agent, inputs=[name_input, copy_docs_checkbox, setup_output, language_input, send_config_checkbox], outputs=setup_output)
+    submit_btn.click(fn=setup_llmchain, inputs=[name_input, copy_docs_checkbox, setup_output, language_input, send_config_checkbox], outputs=setup_output)
 
 #setup_interface.launch()
