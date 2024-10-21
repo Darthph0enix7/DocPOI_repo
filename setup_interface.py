@@ -105,28 +105,34 @@ def select_agent(agent_type):
             gr.update(visible=True)
         )
 
-# Create Gradio Interface for Setup Screen
-with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #chatbot { height: 100%; flex-grow: 1;  }") as setup_interface:
+with gr.Blocks(theme=gr.themes.Soft(), css="""
+    footer{display:none !important}
+    #chatbot { height: 100%; flex-grow: 1; }
+    .flex-container { display: flex; flex-wrap: nowrap; width: 100%; }
+    .flex-item { flex: 1 1 0; box-sizing: border-box; padding: 2px; }
+    .flex-item img { width: 100%; height: auto; max-width: 100%; }
+    """) as setup_interface:
+    
     gr.Markdown("## Select an LLM Agent type")
     
     agent_type_state = gr.State()
     
-    with gr.Row():
-        with gr.Column():
+    with gr.Row(elem_classes="flex-container"):
+        with gr.Column(elem_classes="flex-item", min_width=100):
             gr.Image("github/react_agent.png", show_fullscreen_button=False, show_label=False, show_download_button=False)
             gr.Markdown("### ReAct agent\nDescription: placeholder etc...")
             react_btn = gr.Button("Select ReAct agent")
         
-        with gr.Column():
+        with gr.Column(elem_classes="flex-item", min_width=100):
             gr.Image("github/llmchain.png", show_fullscreen_button=False, show_label=False, show_download_button=False)
             gr.Markdown("### LLMChain\nDescription: placeholder")
             llmchain_btn = gr.Button("Select LLMChain")
         
-        with gr.Column():
+        with gr.Column(elem_classes="flex-item", min_width=100):
             gr.Image("github/openai_api.png", show_fullscreen_button=False, show_label=False, show_download_button=False)
             gr.Markdown("### Use OpenAI API\nDescription: placeholder")
             openai_btn = gr.Button("Select OpenAI API")
-    
+
     name_input = gr.Textbox(label="Enter your name", visible=False)
     model_name_input = gr.Textbox(label="Model name", visible=False)
     base_url_input = gr.Textbox(label="Base URL or endpoint", visible=False)
@@ -150,4 +156,4 @@ with gr.Blocks(theme=gr.themes.Soft(), css="footer{display:none !important} #cha
     submit_btn.click(fn=setup_react_agent, inputs=[name_input, copy_docs_checkbox, directory_button, language_input, send_config_checkbox], outputs=setup_output)
     submit_btn.click(fn=setup_llmchain, inputs=[name_input, copy_docs_checkbox, directory_button, language_input, send_config_checkbox], outputs=setup_output)
 
-setup_interface.launch()
+#setup_interface.launch()
