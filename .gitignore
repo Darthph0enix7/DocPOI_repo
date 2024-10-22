@@ -8,3 +8,4 @@ setup.flag
 .gradio
 __pycache__
 highlighted_output.pdf
+temp.pdf

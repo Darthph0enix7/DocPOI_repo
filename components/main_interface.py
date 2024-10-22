@@ -35,7 +35,7 @@ def highlight_text_in_pdf(pdf_path, page_number=None, search_text=None):
             page.add_highlight_annot(inst)
     
     # Save to a temporary PDF
-    highlighted_pdf_path = "temp_highlighted_output.pdf"
+    highlighted_pdf_path = "temp.pdf"
     doc.save(highlighted_pdf_path)
     doc.close()
 
