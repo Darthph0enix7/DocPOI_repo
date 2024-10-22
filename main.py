@@ -15,8 +15,6 @@ def is_setup_needed():
     # Check if the setup.flag file exists
     return not os.path.exists("setup.flag")
 
-
-
 # Create FastAPI app instance
 app = FastAPI()
 
@@ -36,6 +34,14 @@ app = gr.mount_gradio_app(app, setup_interface, path="/setup")
 
 # Mount Gradio Main Screen at "/main"
 app = gr.mount_gradio_app(app, main_interface_blocks, path="/main")
+
+# Serve PDF files dynamically through FastAPI
+@app.get("/pdf")
+async def get_pdf(path: str):
+    if os.path.exists(path):
+        return Response(content=open(path, 'rb').read(), media_type='application/pdf')
+    else:
+        return Response(status_code=404, content="PDF not found")
 
 # Define root route to handle redirection after setup
 @app.get("/")
