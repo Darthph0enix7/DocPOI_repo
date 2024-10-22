@@ -9,7 +9,7 @@ pdf_viewer_template = """
 </div>
 """
 
-def highlight_text_in_pdf(pdf_path, page_number, search_text):
+def highlight_text_in_pdf(pdf_path, page_number=None, search_text=None):
     # Make sure the PDF path is absolute and exists
     if not os.path.isabs(pdf_path):
         pdf_path = os.path.abspath(pdf_path)
@@ -18,20 +18,24 @@ def highlight_text_in_pdf(pdf_path, page_number, search_text):
     
     # Open the PDF and highlight text using PyMuPDF
     doc = fitz.open(pdf_path)
+    if page_number is None or page_number < 1:
+        page_number = 1
     page = doc.load_page(page_number - 1)  # PyMuPDF pages are zero-indexed
-    text_instances = page.search_for(search_text)
     
-    # Remove existing highlights to ensure fresh highlighting
-    for annot in page.annots():
-        if annot.type[0] == 8:  # Check if it's a highlight annotation
-            annot.delete()
+    if search_text:
+        text_instances = page.search_for(search_text)
+        
+        # Remove existing highlights to ensure fresh highlighting
+        for annot in page.annots():
+            if annot.type[0] == 8:  # Check if it's a highlight annotation
+                annot.delete()
+        
+        # Highlight all found instances
+        for inst in text_instances:
+            page.add_highlight_annot(inst)
     
-    # Highlight all found instances
-    for inst in text_instances:
-        page.add_highlight_annot(inst)
-    
-    # Save to a new PDF
-    highlighted_pdf_path = "highlighted_output.pdf"
+    # Save to a temporary PDF
+    highlighted_pdf_path = "temp_highlighted_output.pdf"
     doc.save(highlighted_pdf_path)
     doc.close()
 
@@ -53,7 +57,7 @@ with gr.Blocks() as main_interface_blocks:
             # Button to trigger the PDF display with highlights
             submit_button = gr.Button("Highlight and Display PDF")
         
-        with gr.Column(scale=3):
+        with gr.Column(scale=1):
             # HTML output to display the PDF
             pdf_display = gr.HTML()
     
