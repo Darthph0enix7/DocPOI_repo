@@ -244,8 +244,9 @@ def initial_setup():
 
     # Install the version of PyTorch needed
     if gpuchoice == "a":
+        run_cmd("conda config --set channel_priority flexible")
         run_cmd("conda install -y -k nvidia/label/cuda-12.1.0::cuda-toolkit")
-        run_cmd("conda install -y -k pytorch torchvision torchaudio pytorch-cuda=12.1 ninja git curl -c pytorch -c nvidia")
+        run_cmd("conda install pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.1 -c pytorch -c nvidia")
         
         # Gather system information after installing PyTorch
         system_info = gather_system_info()

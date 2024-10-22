@@ -22,6 +22,8 @@ set MINICONDA_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest
 set OLLAMA_PATH=%LocalAppData%\Programs\Ollama\ollama.exe
 set OLLAMA_DOWNLOAD_URL=https://ollama.com/download/OllamaSetup.exe
 
+set conda_exists=F
+
 @rem figure out whether conda needs to be installed
 call "%CONDA_ROOT_PREFIX%\_conda.exe" --version >nul 2>&1
 if "%ERRORLEVEL%" EQU "0" set conda_exists=T
