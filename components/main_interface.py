@@ -87,14 +87,14 @@ def reset_conversation():
     return [], []
 
 # Gradio interface
-with gr.Blocks() as main_interface_blocks:
+with gr.Blocks(theme=gr.themes.Soft(text_size="sm"), css="footer{display:none !important} #chatbot { height: 100%; flex-grow: 1;  }") as main_interface_blocks:
     with gr.Row():
         with gr.Column(scale=1):
-            chatbot = gr.Chatbot([], elem_id="chatbot")
+            chatbot = gr.Chatbot([], elem_id="chatbot", height=500, label="DocPOI V2.0")
             with gr.Row():
-                chat_input = gr.MultimodalTextbox(label="DocPOI V2.0", interactive=True, file_types=["image"], placeholder="Enter message or upload file...", show_label=False, autoscroll=True, autofocus=True, scale=6)
+                chat_input = gr.MultimodalTextbox(label="DocPOI V2.0", interactive=True, file_types=["image"], placeholder="Enter message or upload file...", show_label=False, autoscroll=True, scale=6)
                 stop_button = gr.Button("Stop", size="sm", scale=1, min_width=1)
-                reset_button = gr.Button("Reset Conversation", size="sm", scale=1, min_width=10)
+            reset_button = gr.Button("Reset Conversation", size="sm", scale=1, min_width=10)
             chat_msg = chat_input.submit(add_message, [chatbot, chat_input], [chatbot, chat_input])
             bot_msg = chat_msg.then(bot_response, chatbot, [chatbot], api_name="bot_response")
             bot_msg.then(lambda: gr.MultimodalTextbox(interactive=True), None, [chat_input])
@@ -103,16 +103,20 @@ with gr.Blocks() as main_interface_blocks:
             reset_button.click(reset_conversation, [], [chatbot, chatbot])
         
         with gr.Column(scale=1):
-            # Inputs for PDF path, page number, and search text
-            pdf_path_input = gr.Textbox(label="PDF Path", placeholder="Enter the path to the PDF file")
-            page_number_input = gr.Number(label="Page Number", value=1)
-            search_text_input = gr.Textbox(label="Search Text", placeholder="Enter text to highlight in the PDF")
+            # Hardcoded parameters
+            pdf_path = "C:\\Users\\kalin\\Downloads\\formblatt_03_Seda.pdf"
+            page_number = 1
+            search_text = "Enter text to highlight in the PDF"
             
             # HTML output to display the PDF
             pdf_display = gr.HTML()
             
-            # Submit button to trigger PDF highlighting
-            submit_button = gr.Button("Highlight Text in PDF")
+            # Function to highlight text in PDF with hardcoded parameters
+            def highlight_text_in_pdf_hardcoded():
+                return highlight_text_in_pdf(pdf_path, page_number, search_text)
+            
+            # Display the PDF with highlighted text
+            pdf_display.value = highlight_text_in_pdf_hardcoded()
     
     # Set up the interaction
-    submit_button.click(highlight_text_in_pdf, inputs=[pdf_path_input, page_number_input, search_text_input], outputs=pdf_display)
+    #submit_button.click(highlight_text_in_pdf, inputs=[pdf_path_input, page_number_input, search_text_input], outputs=pdf_display)
