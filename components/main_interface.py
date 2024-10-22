@@ -1,6 +1,8 @@
 import gradio as gr
 import os
 import fitz  # PyMuPDF
+import threading
+import time
 
 # HTML Template for embedding a PDF with page control, removing browser UI
 pdf_viewer_template = """
@@ -45,21 +47,72 @@ def highlight_text_in_pdf(pdf_path, page_number=None, search_text=None):
     # Embed the PDF URL with the specific page
     return pdf_viewer_template.format(pdf_url=pdf_url, page_number=page_number)
 
+def add_message(history, message):
+    for x in message["files"]:
+        history.append(((x,), None))
+    if message["text"] is not None:
+        history.append((message["text"], None))
+    return history, gr.MultimodalTextbox(value=None, interactive=False)
+
+def bot_response(history):
+    # Check if history is empty
+    if not history:
+        history.append(["Bot", "This is a placeholder response."])
+        yield history
+        return
+    
+    # Get the last message from the user
+    user_message = history[-1][1]
+    
+    # Placeholder response
+    placeholder_response = "This is a placeholder response."
+
+    # Ensure the last message is not None
+    if history[-1][1] is None:
+        history[-1][1] = ""
+
+    # Stream the response character by character
+    for character in placeholder_response:
+        history[-1][1] += character
+        time.sleep(0.01)  # Adjust the speed of streaming if needed
+        yield history
+
+    # Final yield to complete the response
+    yield history
+
+def print_like_dislike():
+    print("Like/Dislike button clicked")
+
+def reset_conversation():
+    return [], []
+
 # Gradio interface
 with gr.Blocks() as main_interface_blocks:
     with gr.Row():
         with gr.Column(scale=1):
-            # Input for the PDF file path, page number, and text to highlight
-            pdf_path_input = gr.Textbox(label="PDF File Path", placeholder="Enter the full path to the PDF file here...")
-            page_number_input = gr.Number(label="Page Number", value=1)
-            search_text_input = gr.Textbox(label="Text to Highlight", placeholder="Enter the text to highlight...")
-
-            # Button to trigger the PDF display with highlights
-            submit_button = gr.Button("Highlight and Display PDF")
+            chatbot = gr.Chatbot([], elem_id="chatbot")
+            with gr.Row():
+                chat_input = gr.MultimodalTextbox(label="DocPOI V2.0", interactive=True, file_types=["image"], placeholder="Enter message or upload file...", show_label=False, autoscroll=True, autofocus=True, scale=6)
+                stop_button = gr.Button("Stop", size="sm", scale=1, min_width=1)
+                reset_button = gr.Button("Reset Conversation", size="sm", scale=1, min_width=10)
+            chat_msg = chat_input.submit(add_message, [chatbot, chat_input], [chatbot, chat_input])
+            bot_msg = chat_msg.then(bot_response, chatbot, [chatbot], api_name="bot_response")
+            bot_msg.then(lambda: gr.MultimodalTextbox(interactive=True), None, [chat_input])
+            chatbot.like(print_like_dislike, None, None)
+            #stop_button.click(stop_all_streaming)
+            reset_button.click(reset_conversation, [], [chatbot, chatbot])
         
         with gr.Column(scale=1):
+            # Inputs for PDF path, page number, and search text
+            pdf_path_input = gr.Textbox(label="PDF Path", placeholder="Enter the path to the PDF file")
+            page_number_input = gr.Number(label="Page Number", value=1)
+            search_text_input = gr.Textbox(label="Search Text", placeholder="Enter text to highlight in the PDF")
+            
             # HTML output to display the PDF
             pdf_display = gr.HTML()
+            
+            # Submit button to trigger PDF highlighting
+            submit_button = gr.Button("Highlight Text in PDF")
     
     # Set up the interaction
     submit_button.click(highlight_text_in_pdf, inputs=[pdf_path_input, page_number_input, search_text_input], outputs=pdf_display)
