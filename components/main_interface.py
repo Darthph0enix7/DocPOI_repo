@@ -6,7 +6,7 @@ import time
 
 # HTML Template for embedding a PDF with page control, removing browser UI
 pdf_viewer_template = """
-<div style="width: 100%; height: 100vh; margin: 0; padding: 0;">
+<div style="width: 100%; height: 90vh; margin: 0; padding: 0;">
   <iframe id="pdf_viewer" src="{pdf_url}#toolbar=0&navpanes=0&scrollbar=0&page={page_number}" width="100%" height="100%" style="border: none; margin: 0; padding: 0;"></iframe>
 </div>
 """
@@ -86,37 +86,55 @@ def print_like_dislike():
 def reset_conversation():
     return [], []
 
+# Function to toggle visibility of the PDF viewer column
+def toggle_visibility(state):
+    state = not state
+    return state
+
 # Gradio interface
 with gr.Blocks(theme=gr.themes.Soft(text_size="sm"), css="footer{display:none !important} #chatbot { height: 100%; flex-grow: 1;  }") as main_interface_blocks:
-    with gr.Row():
-        with gr.Column(scale=1):
-            chatbot = gr.Chatbot([], elem_id="chatbot", height=500, label="DocPOI V2.0")
-            with gr.Row():
-                chat_input = gr.MultimodalTextbox(label="DocPOI V2.0", interactive=True, file_types=["image"], placeholder="Enter message or upload file...", show_label=False, autoscroll=True, scale=6)
-                stop_button = gr.Button("Stop", size="sm", scale=1, min_width=1)
-            reset_button = gr.Button("Reset Conversation", size="sm", scale=1, min_width=10)
-            chat_msg = chat_input.submit(add_message, [chatbot, chat_input], [chatbot, chat_input])
-            bot_msg = chat_msg.then(bot_response, chatbot, [chatbot], api_name="bot_response")
-            bot_msg.then(lambda: gr.MultimodalTextbox(interactive=True), None, [chat_input])
-            chatbot.like(print_like_dislike, None, None)
-            #stop_button.click(stop_all_streaming)
-            reset_button.click(reset_conversation, [], [chatbot, chatbot])
-        
-        with gr.Column(scale=1):
-            # Hardcoded parameters
-            pdf_path = "C:\\Users\\kalin\\Downloads\\formblatt_03_Seda.pdf"
-            page_number = 1
-            search_text = "Enter text to highlight in the PDF"
+    with gr.Tab("chat Interface"):
+        with gr.Row():
+            with gr.Column(scale=1):
+                chatbot = gr.Chatbot([], elem_id="chatbot", height=470, label="DocPOI V2.0")
+                with gr.Row():
+                    chat_input = gr.MultimodalTextbox(label="DocPOI V2.0", interactive=True, file_types=["image"], placeholder="Enter message or upload file...", show_label=False, autoscroll=True, scale=6)
+                    stop_button = gr.Button("Stop", size="sm", scale=1, min_width=1)
+                reset_button = gr.Button("Reset Conversation", size="sm", scale=1, min_width=1)
+                chat_msg = chat_input.submit(add_message, [chatbot, chat_input], [chatbot, chat_input])
+                bot_msg = chat_msg.then(bot_response, chatbot, [chatbot], api_name="bot_response")
+                bot_msg.then(lambda: gr.MultimodalTextbox(interactive=True), None, [chat_input])
+                chatbot.like(print_like_dislike, None, None)
+                #stop_button.click(stop_all_streaming)
+                reset_button.click(reset_conversation, [], [chatbot, chatbot])
             
-            # HTML output to display the PDF
-            pdf_display = gr.HTML()
+            # State variable to track visibility
+            pdf_visible = gr.State(False)
             
-            # Function to highlight text in PDF with hardcoded parameters
-            def highlight_text_in_pdf_hardcoded():
-                return highlight_text_in_pdf(pdf_path, page_number, search_text)
+            with gr.Column(scale=1, visible=False) as pdf_column:
+                # Hardcoded parameters
+                pdf_path = "C:\\Users\\kalin\\Downloads\\formblatt_03_Seda.pdf"
+                page_number = 1
+                search_text = "E"
+                
+                # HTML output to display the PDF
+                pdf_display = gr.HTML()
+                
+                # Function to highlight text in PDF with hardcoded parameters
+                def highlight_text_in_pdf_hardcoded():
+                    return highlight_text_in_pdf(pdf_path, page_number, search_text)
+                
+                # Display the PDF with highlighted text
+                pdf_display.value = highlight_text_in_pdf_hardcoded()
             
-            # Display the PDF with highlighted text
-            pdf_display.value = highlight_text_in_pdf_hardcoded()
-    
+            # Use the stop button to toggle visibility
+            stop_button.click(toggle_visibility, pdf_visible, pdf_visible).then(
+                lambda visible: gr.update(visible=visible), pdf_visible, pdf_column
+            )
+                
+    with gr.Tab("Flip Text"):
+        text_input = gr.Textbox()
+        text_output = gr.Textbox()
+        text_button = gr.Button("Flip")    
     # Set up the interaction
     #submit_button.click(highlight_text_in_pdf, inputs=[pdf_path_input, page_number_input, search_text_input], outputs=pdf_display)
