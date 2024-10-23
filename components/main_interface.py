@@ -3,6 +3,16 @@ import os
 import fitz  # PyMuPDF
 import threading
 import time
+from components.settings import create_settings_interface
+from components.param_manager import ParamManager
+
+# Initialize ParamManager
+param_manager = ParamManager()
+params = param_manager.get_all_params()
+
+# Function to update parameter
+def update_param(param_name, value):
+    param_manager.set_param(param_name, value)
 
 # HTML Template for embedding a PDF with page control, removing browser UI
 pdf_viewer_template = """
@@ -132,9 +142,8 @@ with gr.Blocks(theme=gr.themes.Soft(text_size="sm"), css="footer{display:none !i
                 lambda visible: gr.update(visible=visible), pdf_visible, pdf_column
             )
                 
-    with gr.Tab("Flip Text"):
-        text_input = gr.Textbox()
-        text_output = gr.Textbox()
-        text_button = gr.Button("Flip")    
+    create_settings_interface()   
+
+        
     # Set up the interaction
     #submit_button.click(highlight_text_in_pdf, inputs=[pdf_path_input, page_number_input, search_text_input], outputs=pdf_display)
