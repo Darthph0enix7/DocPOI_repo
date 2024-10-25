@@ -1,5 +1,5 @@
 import gradio as gr
-from components.param_manager import ParamManager
+from param_manager import ParamManager
 from tkinter import Tk, filedialog
 
 # Instantiate ParamManager
@@ -31,6 +31,9 @@ def select_directory():
 
 # Define Setup Screen Function for OpenAI API
 def setup_openai_api(name, model_name, base_url, api_key, use_embeddings, copy_docs, directory, language, send_config):
+    # Print statement for debugging
+    print(f"Setting up OpenAI API for user: {name}")
+    
     param_manager.set_param('user_name', name)
     param_manager.set_param('agent_type', 'OpenAI API')
     param_manager.set_param('model_name', model_name)
@@ -48,6 +51,9 @@ def setup_openai_api(name, model_name, base_url, api_key, use_embeddings, copy_d
 
 # Define Setup Screen Function for ReAct agent
 def setup_react_agent(name, copy_docs, directory, language, send_config):
+    # Print statement for debugging
+    print(f"Setting up ReAct Agent for user: {name}")
+
     param_manager.set_param('user_name', name)
     param_manager.set_param('agent_type', 'ReAct agent')
     param_manager.set_param('copy_docs', copy_docs)
@@ -61,6 +67,9 @@ def setup_react_agent(name, copy_docs, directory, language, send_config):
 
 # Define Setup Screen Function for LLMChain
 def setup_llmchain(name, copy_docs, directory, language, send_config):
+    # Print statement for debugging
+    print(f"Setting up LLMChain for user: {name}")
+
     param_manager.set_param('user_name', name)
     param_manager.set_param('agent_type', 'LLMChain')
     param_manager.set_param('copy_docs', copy_docs)
@@ -88,8 +97,7 @@ def select_agent(agent_type):
             gr.update(visible=True),
             gr.update(visible=True),
             gr.update(visible=True),
-            gr.update(visible=True),
-            gr.update(visible=True)
+            agent_type  # Store the agent type state
         )
     elif agent_type == "ReAct agent":
         return (
@@ -104,8 +112,7 @@ def select_agent(agent_type):
             gr.update(visible=True),
             gr.update(visible=True),
             gr.update(visible=True),
-            gr.update(visible=True),
-            gr.update(visible=True)
+            agent_type  # Store the agent type state
         )
     elif agent_type == "LLMChain":
         return (
@@ -120,10 +127,10 @@ def select_agent(agent_type):
             gr.update(visible=True),
             gr.update(visible=True),
             gr.update(visible=True),
-            gr.update(visible=True),
-            gr.update(visible=True)
+            agent_type  # Store the agent type state
         )
 
+# Gradio Blocks interface
 with gr.Blocks(theme=gr.themes.Soft(), css="""
     footer{display:none !important}
     #chatbot { height: 100%; flex-grow: 1; }
@@ -134,7 +141,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css="""
     
     gr.Markdown("## Select an LLM Agent type")
     
-    agent_type_state = gr.State()
+    agent_type_state = gr.State()  # State to store selected agent type
     
     with gr.Row(elem_classes="flex-container"):
         with gr.Column(elem_classes="flex-item", min_width=100):
@@ -158,22 +165,30 @@ with gr.Blocks(theme=gr.themes.Soft(), css="""
     api_key_input = gr.Textbox(label="API key", visible=False)
     use_embeddings_checkbox = gr.Checkbox(label="Do you wanna use OpenAI embeddings (not recommended for security and privacy reasons)", visible=False)
     
-    copy_docs_checkbox = gr.Checkbox(label="Copy the documents over to database (recommended)", visible=False)
+    copy_docs_checkbox = gr.Checkbox(label="Copy the documents over to database (recommended)", visible=False, value=True)
     directory_button = gr.Button("Select Directory", visible=False)
     language_input = gr.Textbox(label="What is your primary language", visible=False)
-    send_config_checkbox = gr.Checkbox(label="Send my system config and settings to the Creator (not API or credential information) for improvement of the app?", visible=False)
+    send_config_checkbox = gr.Checkbox(label="Send my system config and settings to the Creator (not API or credential information) for improvement of the app?", visible=False, value=True)
     
     setup_output = gr.HTML(label="Output", visible=False)
     submit_btn = gr.Button("Complete Setup", visible=False)
     agent_info = gr.Markdown(visible=False)
     
-    react_btn.click(fn=lambda: select_agent("ReAct agent"), inputs=None, outputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox, setup_output, submit_btn, agent_type_state, agent_info])
-    llmchain_btn.click(fn=lambda: select_agent("LLMChain"), inputs=None, outputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox, setup_output, submit_btn, agent_type_state, agent_info])
-    openai_btn.click(fn=lambda: select_agent("OpenAI API"), inputs=None, outputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox, setup_output, submit_btn, agent_type_state, agent_info])
+    react_btn.click(fn=lambda: select_agent("ReAct agent"), inputs=None, outputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox, setup_output, submit_btn, agent_type_state])
+    llmchain_btn.click(fn=lambda: select_agent("LLMChain"), inputs=None, outputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox, setup_output, submit_btn, agent_type_state])
+    openai_btn.click(fn=lambda: select_agent("OpenAI API"), inputs=None, outputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, directory_button, language_input, send_config_checkbox, setup_output, submit_btn, agent_type_state])
     
     directory_button.click(fn=select_directory, inputs=None, outputs=setup_output)
-    submit_btn.click(fn=setup_openai_api, inputs=[name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, setup_output, language_input, send_config_checkbox], outputs=setup_output)
-    submit_btn.click(fn=setup_react_agent, inputs=[name_input, copy_docs_checkbox, setup_output, language_input, send_config_checkbox], outputs=setup_output)
-    submit_btn.click(fn=setup_llmchain, inputs=[name_input, copy_docs_checkbox, setup_output, language_input, send_config_checkbox], outputs=setup_output)
+    
+    def complete_setup(agent_type, name, model_name, base_url, api_key, use_embeddings, copy_docs, language, send_config):
+        directory = param_manager.get_param('directory')
+        if agent_type == "OpenAI API":
+            return setup_openai_api(name, model_name, base_url, api_key, use_embeddings, copy_docs, directory, language, send_config)
+        elif agent_type == "ReAct agent":
+            return setup_react_agent(name, copy_docs, directory, language, send_config)
+        elif agent_type == "LLMChain":
+            return setup_llmchain(name, copy_docs, directory, language, send_config)
+    
+    submit_btn.click(fn=complete_setup, inputs=[agent_type_state, name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, language_input, send_config_checkbox], outputs=setup_output)
 
-#setup_interface.launch()
+setup_interface.launch()
