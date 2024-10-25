@@ -1,5 +1,5 @@
 import gradio as gr
-from param_manager import ParamManager
+from components.param_manager import ParamManager
 from tkinter import Tk, filedialog
 
 # Instantiate ParamManager
