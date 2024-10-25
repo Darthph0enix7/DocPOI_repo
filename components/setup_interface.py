@@ -191,4 +191,4 @@ with gr.Blocks(theme=gr.themes.Soft(), css="""
     
     submit_btn.click(fn=complete_setup, inputs=[agent_type_state, name_input, model_name_input, base_url_input, api_key_input, use_embeddings_checkbox, copy_docs_checkbox, language_input, send_config_checkbox], outputs=setup_output)
 
-setup_interface.launch()
+#setup_interface.launch()
