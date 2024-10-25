@@ -11,7 +11,7 @@ def update_param(param_name, value):
 
 def create_settings_interface():
     with gr.Tab("Settings"):
-        # Agent type dropdown
+            # Agent type dropdown
         agent_type = gr.Dropdown(
             choices=["OpenAI API", "LLMChain", "ReAct agent"],
             value=params.get("agent_type", "OpenAI API"),
@@ -95,7 +95,7 @@ def create_settings_interface():
 
         embed_model_openai = gr.Dropdown(
             choices=["text-embedding-3-small", "text-embedding-3-large"],
-            value=params.get("embed_model", params.get("embed_model", "text-embedding-3-small")),
+            value=params.get("embed_model", "text-embedding-3-large"),
             label="Embed Model",
             visible=params.get("agent_type") == "OpenAI API" and params.get("use_embeddings", False),
             interactive=True
@@ -137,17 +137,18 @@ def create_settings_interface():
         embed_model_react.change(lambda val: update_param("embed_model", val), embed_model_react, None)
 
         def update_visibility(agent_type, use_embeddings):
-            return (
-                gr.update(visible=agent_type == "OpenAI API"),
-                gr.update(visible=agent_type == "OpenAI API"),
-                gr.update(visible=agent_type == "OpenAI API"),
-                gr.update(visible=agent_type == "OpenAI API"),
-                gr.update(visible=agent_type == "OpenAI API" and use_embeddings),
-                gr.update(visible=agent_type == "LLMChain"),
-                gr.update(visible=agent_type == "LLMChain"),
-                gr.update(visible=agent_type == "ReAct agent"),
-                gr.update(visible=agent_type == "ReAct agent"),
-            )
+            visibility_dict = {
+                "model_name": gr.update(visible=agent_type == "OpenAI API"),
+                "base_url": gr.update(visible=agent_type == "OpenAI API"),
+                "api_key": gr.update(visible=agent_type == "OpenAI API"),
+                "use_embeddings": gr.update(visible=agent_type == "OpenAI API"),
+                "embed_model_openai": gr.update(visible=agent_type == "OpenAI API" and use_embeddings),
+                "local_model_llmchain": gr.update(visible=agent_type == "LLMChain"),
+                "embed_model_llmchain": gr.update(visible=agent_type == "LLMChain"),
+                "local_model_react": gr.update(visible=agent_type == "ReAct agent"),
+                "embed_model_react": gr.update(visible=agent_type == "ReAct agent"),
+            }
+            return tuple(visibility_dict[key] for key in visibility_dict)
 
         agent_type.change(
             update_visibility,
