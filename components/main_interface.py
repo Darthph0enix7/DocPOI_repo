@@ -5,6 +5,7 @@ import threading
 import time
 from components.settings import create_settings_interface
 from components.param_manager import ParamManager
+from components.tools_interface import create_tools_interface
 
 # Initialize ParamManager
 param_manager = ParamManager()
@@ -103,7 +104,7 @@ def toggle_visibility(state):
 
 # Gradio interface
 with gr.Blocks(theme=gr.themes.Soft(text_size="sm"), css="footer{display:none !important} #chatbot { height: 100%; flex-grow: 1;  }") as main_interface_blocks:
-    with gr.Tab("chat Interface"):
+    with gr.Tab("Chat Interface"):
         with gr.Row():
             with gr.Column(scale=1):
                 chatbot = gr.Chatbot([], elem_id="chatbot", height=470, label="DocPOI V2.0")
@@ -141,9 +142,11 @@ with gr.Blocks(theme=gr.themes.Soft(text_size="sm"), css="footer{display:none !i
             stop_button.click(toggle_visibility, pdf_visible, pdf_visible).then(
                 lambda visible: gr.update(visible=visible), pdf_visible, pdf_column
             )
-                
-    create_settings_interface()   
+    
+    # Create settings interface
+    create_settings_interface(params)
 
-        
-    # Set up the interaction
-    #submit_button.click(highlight_text_in_pdf, inputs=[pdf_path_input, page_number_input, search_text_input], outputs=pdf_display)
+    # Create tools interface tab
+    if params.get("agent_type") in ["ReAct agent", "OpenAI API"]:
+        with gr.Tab("Tools Interface") as tools_tab:
+            create_tools_interface(params)

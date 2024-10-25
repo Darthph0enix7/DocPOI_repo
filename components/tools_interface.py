@@ -10,7 +10,7 @@ def update_param(param_name, value):
 
 # Create the settings interface
 
-def create_settings_interface(params):
+def create_tools_interface(params):
     with gr.Tab("Settings"):
         # Display a message if the directory is not set, indicating it's the first load
         if not params.get("directory"):
