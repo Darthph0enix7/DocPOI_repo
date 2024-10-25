@@ -11,7 +11,7 @@ def update_param(param_name, value):
 
 def create_settings_interface():
     with gr.Tab("Settings"):
-            # Agent type dropdown
+        # Agent type dropdown
         agent_type = gr.Dropdown(
             choices=["OpenAI API", "LLMChain", "ReAct agent"],
             value=params.get("agent_type", "OpenAI API"),
@@ -95,7 +95,7 @@ def create_settings_interface():
 
         embed_model_openai = gr.Dropdown(
             choices=["text-embedding-3-small", "text-embedding-3-large"],
-            value=params.get("embed_model", "text-embedding-3-large"),
+            value=params.get("embed_model", "text-embedding-3-small"),
             label="Embed Model",
             visible=params.get("agent_type") == "OpenAI API" and params.get("use_embeddings", False),
             interactive=True
