@@ -149,4 +149,4 @@ with gr.Blocks(theme=gr.themes.Soft(text_size="sm"), css="footer{display:none !i
     # Create tools interface tab
     if params.get("agent_type") in ["ReAct agent", "OpenAI API"]:
         with gr.Tab("Tools Interface") as tools_tab:
-            create_tools_interface(params)
+            create_tools_interface()

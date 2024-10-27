@@ -1,180 +1,135 @@
 import gradio as gr
-from components.param_manager import ParamManager
+import subprocess
+import ast
+import os
 
-# Initialize ParamManager
-param_manager = ParamManager()
+# Hardcoded examples of tools
+prewritten_examples = {
+    "Firebase Tool": """
+import firebase_admin
+from firebase_admin import credentials, db
 
-# Function to update parameter
-def update_param(param_name, value):
-    param_manager.set_param(param_name, value)
+def initialize_firebase():
+    cred = credentials.Certificate("path/to/your/firebase/credentials.json")
+    firebase_admin.initialize_app(cred)
 
-# Create the settings interface
+    return "Firebase has been initialized!"
+""",
+    "Wikipedia Query Tool": """
+from langchain_community.tools import WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
 
-def create_tools_interface(params):
-    with gr.Tab("Settings"):
-        # Display a message if the directory is not set, indicating it's the first load
-        if not params.get("directory"):
-            gr.Markdown("## Please restart to access or change settings")
-            return
-        
-        # Agent type dropdown
-        agent_type = gr.Dropdown(
-            choices=["OpenAI API", "LLMChain", "ReAct agent"],
-            value=params.get("agent_type", "OpenAI API"),
-            label="Agent Type",
-            interactive=True
-        )
-        agent_type.change(lambda val: update_param("agent_type", val), agent_type, None)
+wikipedia_tool = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
 
-        # Username input
-        username = gr.Textbox(
-            value=params.get("user_name", ""),
-            label="Username",
-            interactive=True
-        )
-        username.change(lambda val: update_param("user_name", val), username, None)
+# Example function using the tool
+def search_wikipedia(query):
+    return wikipedia_tool.run(query)
+"""
+}
 
-        # Copy Docs Checkbox
-        copy_docs = gr.Checkbox(
-            value=params.get("copy_docs", False),
-            label="Copy Docs",
-            interactive=True
-        )
-        copy_docs.change(lambda val: update_param("copy_docs", val), copy_docs, None)
+general_tool = prewritten_examples["Firebase Tool"]
 
-        # Directory Input
-        directory = gr.Textbox(
-            value=params.get("directory", ""),
-            label="Directory",
-            interactive=True
-        )
-        directory.change(lambda val: update_param("directory", val), directory, None)
+# Define a function to validate Python syntax
+def validate_syntax(code):
+    try:
+        ast.parse(code)
+        return "Syntax is valid!"
+    except SyntaxError as e:
+        return f"Syntax error: {e}"
 
-        # Language Input
-        language = gr.Textbox(
-            value=params.get("language", ""),
-            label="Language",
-            interactive=True
-        )
-        language.change(lambda val: update_param("language", val), language, None)
+# Function to install pip packages
+def install_packages(packages):
+    if packages:
+        for package in packages.split(','):
+            package = package.strip()
+            if package:
+                subprocess.run(["pip", "install", package])
 
-        # Send Config Checkbox
-        send_config = gr.Checkbox(
-            value=params.get("send_config", False),
-            label="Send Config",
-            interactive=True
-        )
-        send_config.change(lambda val: update_param("send_config", val), send_config, None)
+# Function to save the tool code to a file and update saved tools list
+def save_tool(tool_name, code, packages):
+    if not tool_name:
+        return "Error: Tool name cannot be empty."
+    
+    # Validate the syntax before saving
+    syntax_check = validate_syntax(code)
+    if "Syntax error" in syntax_check:
+        return syntax_check
+    
+    # Create a directory for the tools if it doesn't exist
+    if not os.path.exists("user_tools"):
+        os.makedirs("user_tools")
+    
+    # Save the code to a Python file
+    tool_path = os.path.join("user_tools", f"{tool_name}.py")
+    with open(tool_path, "w") as f:
+        f.write(code)
+    
+    # Install the required packages
+    install_packages(packages)
+    
+    # Update saved tools list after saving
+    update_saved_tools()
+    
+    return f"Tool '{tool_name}' has been saved successfully!"
 
-        # Conditional settings based on agent type
-        model_name = gr.Textbox(
-            value=params.get("model_name", ""),
-            label="Model Name",
-            visible=params.get("agent_type") == "OpenAI API",
-            interactive=True
-        )
-        model_name.change(lambda val: update_param("model_name", val), model_name, None)
+# Function to load saved tools
+def load_saved_tools():
+    tools = {}
+    if os.path.exists("user_tools"):
+        for filename in os.listdir("user_tools"):
+            if filename.endswith(".py"):
+                tool_name = filename[:-3]
+                with open(os.path.join("user_tools", filename), "r") as f:
+                    tools[tool_name] = f.read()
+    return tools
 
-        base_url = gr.Textbox(
-            value=params.get("base_url", ""),
-            label="Base URL",
-            visible=params.get("agent_type") == "OpenAI API",
-            interactive=True
-        )
-        base_url.change(lambda val: update_param("base_url", val), base_url, None)
+# Function to update saved tools dropdown
+saved_tools = load_saved_tools()
 
-        api_key = gr.Textbox(
-            value=params.get("api_key", ""),
-            label="API Key",
-            visible=params.get("agent_type") == "OpenAI API",
-            interactive=True
-        )
-        api_key.change(lambda val: update_param("api_key", val), api_key, None)
+def update_saved_tools():
+    global saved_tools
+    saved_tools = load_saved_tools()
 
-        use_embeddings = gr.Checkbox(
-            value=params.get("use_embeddings", False),
-            label="Use Embeddings",
-            visible=params.get("agent_type") == "OpenAI API",
-            interactive=True
-        )
-        use_embeddings.change(lambda val: update_param("use_embeddings", val), use_embeddings, None)
-
-        embed_model_openai = gr.Dropdown(
-            choices=["text-embedding-3-small", "text-embedding-3-large"],
-            value=params.get("embed_model", "text-embedding-3-small"),
-            label="Embed Model",
-            visible=params.get("agent_type") == "OpenAI API" and params.get("use_embeddings", False),
-            interactive=True
-        )
-        embed_model_openai.change(lambda val: update_param("embed_model", val), embed_model_openai, None)
-
-        local_model_llmchain = gr.Dropdown(
-            choices=["Llama3.1 8b", "Qwen 2.5 7b", "gemma2 9b"],
-            value=params.get("local_model", "Llama3.1 8b"),
-            label="Local Model",
-            visible=params.get("agent_type") == "LLMChain",
-            interactive=True
-        )
-        local_model_llmchain.change(lambda val: update_param("local_model", val), local_model_llmchain, None)
-
-        embed_model_llmchain = gr.Textbox(
-            value=params.get("embed_model", ""),
-            label="Embed Model",
-            visible=params.get("agent_type") == "LLMChain",
-            interactive=True
-        )
-        embed_model_llmchain.change(lambda val: update_param("embed_model", val), embed_model_llmchain, None)
-
-        local_model_react = gr.Dropdown(
-            choices=["Mistral Nemo 12B", "Qwen 2.5 14b", "gemma2 9b"],
-            value=params.get("local_model", "Mistral Nemo 12B"),
-            label="Local Model",
-            visible=params.get("agent_type") == "ReAct agent",
-            interactive=True
-        )
-        local_model_react.change(lambda val: update_param("local_model", val), local_model_react, None)
-
-        embed_model_react = gr.Textbox(
-            value=params.get("embed_model", ""),
-            label="Embed Model",
-            visible=params.get("agent_type") == "ReAct agent",
-            interactive=True
-        )
-        embed_model_react.change(lambda val: update_param("embed_model", val), embed_model_react, None)
-
-        def update_visibility(agent_type, use_embeddings):
-            visibility_dict = {
-                "model_name": gr.update(visible=agent_type == "OpenAI API"),
-                "base_url": gr.update(visible=agent_type == "OpenAI API"),
-                "api_key": gr.update(visible=agent_type == "OpenAI API"),
-                "use_embeddings": gr.update(visible=agent_type == "OpenAI API"),
-                "embed_model_openai": gr.update(visible=agent_type == "OpenAI API" and use_embeddings),
-                "local_model_llmchain": gr.update(visible=agent_type == "LLMChain"),
-                "embed_model_llmchain": gr.update(visible=agent_type == "LLMChain"),
-                "local_model_react": gr.update(visible=agent_type == "ReAct agent"),
-                "embed_model_react": gr.update(visible=agent_type == "ReAct agent"),
-            }
-            return tuple(visibility_dict[key] for key in visibility_dict)
-
-        agent_type.change(
-            update_visibility,
-            inputs=[agent_type, use_embeddings],
-            outputs=[
-                model_name,
-                base_url,
-                api_key,
-                use_embeddings,
-                embed_model_openai,
-                local_model_llmchain,
-                embed_model_llmchain,
-                local_model_react,
-                embed_model_react
-            ]
-        )
-
-        use_embeddings.change(
-            lambda val: gr.update(visible=val),
-            inputs=[use_embeddings],
-            outputs=[embed_model_openai]
-        )
+# Gradio interface
+def create_tools_interface():
+    gr.Markdown("# Custom Tool Creator for Chatbot Agent")
+    # Code editor
+    code_editor = gr.Code(label="Tool Code", language="python", lines=20)
+    
+    # Load a general example by default
+    code_editor.value = general_tool
+    
+    with gr.Row():
+        with gr.Column():
+            # Tool name input
+            tool_name = gr.Textbox(label="Tool Name", placeholder="Enter the name of your tool")       
+            # Pip packages input
+            pip_packages = gr.Textbox(label="Pip Packages", placeholder="e.g., firebase-admin, requests")
+            
+        with gr.Column():
+            # List of saved tools
+            saved_tools_dropdown = gr.Dropdown(choices=list(saved_tools.keys()), label="Your Saved Tools")
+            
+            # Function to load saved tool code
+            def load_tool_code(tool_name):
+                # Load existing tool and update tool name input
+                tool_code = saved_tools.get(tool_name, "")
+                return tool_code, tool_name
+            
+            saved_tools_dropdown.change(load_tool_code, inputs=saved_tools_dropdown, outputs=[code_editor, tool_name])
+            
+            # Dropdown for selecting examples
+            def load_example(example_name):
+                return prewritten_examples.get(example_name, "")
+            
+            example_dropdown = gr.Dropdown(choices=list(prewritten_examples.keys()), label="Load Example Tool")
+            example_dropdown.change(load_example, inputs=example_dropdown, outputs=code_editor)
+    
+    # Save tool button
+    save_btn = gr.Button("Save Tool")
+    save_result = gr.Textbox(label="Save Result", interactive=False)
+    save_btn.click(save_tool, inputs=[tool_name, code_editor, pip_packages], outputs=save_result)
+    
+    # Update saved tools dropdown after saving
+    save_btn.click(lambda: list(saved_tools.keys()), None, saved_tools_dropdown)
 

@@ -9,3 +9,4 @@ __pycache__
 highlighted_output.pdf
 temp.pdf
 chroma_langchain_db
+user_tools
