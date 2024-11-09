@@ -96,7 +96,7 @@ def create_tools_interface():
         with gr.Column(scale=20):
             gr.Markdown("# Custom Tool Creator for Chatbot Agent")
         with gr.Column(scale=1, min_width=1):
-            info_btn = gr.Button("",icon="github/189664.png", link="https://eren.enpoi.com/#:~:text=Eren%20Kalinsazlioglu.")
+            info_btn = gr.Button("",icon="github/189664.png", link="https://eren.enpoi.com/#:~:text=Balancing%20professional%20excellence%20with%20personal%20growth%2C%20I%20am%20committed%20to%20continuous")
     
     # Code editor
     code_editor = gr.Code(label="Tool Code", language="python", lines=20)
