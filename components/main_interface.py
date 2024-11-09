@@ -2,10 +2,83 @@ import gradio as gr
 import os
 import fitz  # PyMuPDF
 import threading
+import logging
 import time
 from components.settings import create_settings_interface
 from components.param_manager import ParamManager
 from components.tools_interface import create_tools_interface
+from components.models import setup_models
+
+from langchain_chroma import Chroma
+from langchain.indexes import SQLRecordManager, index
+from langchain_core.documents import Document
+from langchain.tools.retriever import create_retriever_tool
+from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import create_react_agent
+from langchain_core.tools import Tool
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+config = {}
+
+llm, embeddings = setup_models()
+namespace = f"chroma/collection"
+record_manager = SQLRecordManager(
+    namespace, db_url="sqlite:///record_manager_cache.sql"
+)
+record_manager.create_schema()
+vectorstore = Chroma(
+    collection_name="collection",
+    embedding_function=embeddings,
+    persist_directory="./chroma_langchain_db",  # Where to save data locally, remove if not necessary
+)
+retriever = vectorstore.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={'score_threshold': 0.8, 'k': 4, 'filter': None},
+    )
+
+tool = create_retriever_tool(
+    retriever,
+    "Document_retriever",
+    "Searches and returns relevant documents based on the query, use when you need to get information or context from users documents.",
+)
+tools = [tool]
+memory = MemorySaver()
+system_prompt = "you are a helpful assistant that can provide information and context from documents, you can also help with summarization, translation, and more."
+agent_executor = create_react_agent(
+    llm, tools, checkpointer=memory, state_modifier=system_prompt
+)
+config = {"configurable": {"thread_id": "default"}}
+
+def send_message(message):
+    logger.info(f"Received message: {message}")
+    human_message = HumanMessage(content=message)
+    
+    response = agent_executor.invoke(
+        {"messages": [human_message]},
+        config=config,
+    )
+    output = get_most_recent_ai_message_content_and_tool_calls(response)
+    logger.info(f"Received response: {output}")
+    return output
+
+def get_most_recent_ai_message_content_and_tool_calls(response):
+    messages = response.get('messages', [])
+    most_recent_content = None
+    tool_calls = []
+
+    for message in reversed(messages):
+        if isinstance(message, HumanMessage):
+            break
+        if isinstance(message, AIMessage):
+            if message.content:
+                most_recent_content = message.content
+            if 'tool_calls' in message.additional_kwargs:
+                tool_calls.extend(message.additional_kwargs.get('tool_calls', []))
+
+    return most_recent_content, tool_calls
 
 # Initialize ParamManager
 param_manager = ParamManager()
@@ -73,17 +146,27 @@ def bot_response(history):
         return
     
     # Get the last message from the user
-    user_message = history[-1][1]
+    user_message = history[-1][0] if history[-1][1] is None else history[-1][1]
     
-    # Placeholder response
-    placeholder_response = "This is a placeholder response."
-
     # Ensure the last message is not None
-    if history[-1][1] is None:
-        history[-1][1] = ""
+    if user_message is None:
+        user_message = ""
+    
+    # Get the bot response using send_message
+    bot_reply, tool_calls = send_message(user_message)
+    
+    # Add tool usage metadata if any tools were called
+    if tool_calls:
+        for tool_call in tool_calls:
+            tool_name = tool_call['function']['name']
+            tool_arguments = tool_call['function']['arguments']
+            tool_metadata = f"🛠️ Used tool {tool_name} with arguments: {tool_arguments}"
+            history.append(["Bot", tool_metadata])
+            yield history
 
     # Stream the response character by character
-    for character in placeholder_response:
+    history.append(["Bot", ""])
+    for character in bot_reply:
         history[-1][1] += character
         time.sleep(0.01)  # Adjust the speed of streaming if needed
         yield history

@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, BackgroundTasks
 import gradio as gr
 import uvicorn
 import os
-from components.setup_interface import setup_interface
-from components.main_interface import main_interface_blocks
+import time
 import logging
+from components.setup_interface import setup_interface
+import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,8 +33,13 @@ async def check_setup_needed(request: Request, call_next):
 # Mount Gradio Setup Screen at "/setup"
 app = gr.mount_gradio_app(app, setup_interface, path="/setup")
 
-# Mount Gradio Main Screen at "/main"
-app = gr.mount_gradio_app(app, main_interface_blocks, path="/main")
+# Function to monitor the setup.flag file and reload the app
+async def monitor_setup_flag():
+    while is_setup_needed():
+        await asyncio.sleep(1)
+    logger.info("Setup complete, mounting main interface...")
+    from components.main_interface import main_interface_blocks
+    app.mount("/main", gr.mount_gradio_app(app, main_interface_blocks, path="/main"))
 
 # Serve PDF files dynamically through FastAPI
 @app.get("/pdf")
@@ -45,14 +51,19 @@ async def get_pdf(path: str):
 
 # Define root route to handle redirection after setup
 @app.get("/")
-async def root():
+async def root(background_tasks: BackgroundTasks):
     if is_setup_needed():
         logger.info("Setup needed, redirecting to /setup")
+        background_tasks.add_task(monitor_setup_flag)
         return Response(status_code=307, headers={"Location": "/setup"})
     logger.info("Setup not needed, redirecting to /main")
     return Response(status_code=307, headers={"Location": "/main"})
 
 if __name__ == "__main__":
-    logger.info("Starting server...")
+    if is_setup_needed():
+        logger.info("Starting server in setup mode...")
+    else:
+        from components.main_interface import main_interface_blocks
+        app = gr.mount_gradio_app(app, main_interface_blocks, path="/main")
+        logger.info("Starting server in main mode...")
     uvicorn.run(app, host="127.0.0.1", port=7860)
-    

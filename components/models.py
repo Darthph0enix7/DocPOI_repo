@@ -1,4 +1,4 @@
-from param_manager import ParamManager
+from components.param_manager import ParamManager
 import os
 
 # Initialize ParamManager
@@ -9,6 +9,9 @@ params = param_manager.get_all_params()
 agent_type = params.get('agent_type')
 
 def setup_models():
+    llm = None
+    embeddings = None
+
     # Conditional logic based on agent_type
     if agent_type == "OpenAI API":
         embed_model = params.get('embed_model', "text-embedding-3-small")
@@ -38,9 +41,9 @@ def setup_models():
 
         # Translate local_model based on its value
         model_translation = {
-            "Llama3.1 8b": "llama3.1:8b",
-            "Qwen 2.5 7b": "qwen2.5:7b",
-            "gemma2 9b": "gemma2:9b"
+            "Llama3.1 8b": "llama3.1-8b",
+            "Qwen 2.5 7b": "qwen-2.5-7b",
+            "gemma2 9b": "gemma2-9b"
         }
 
         translated_local_model = model_translation.get(local_model, local_model)
@@ -72,8 +75,8 @@ def setup_models():
         # Translate local_model based on its value
         model_translation = {
             "Mistral Nemo 12B": "mistral-nemo",
-            "Qwen 2.5 14b": "qwen2.5:14b",
-            "gemma2 9b": "gemma2:9b"
+            "Qwen 2.5 14b": "qwen-2.5-14b",
+            "gemma2 9b": "gemma2-9b"
         }
 
         translated_local_model = model_translation.get(local_model, local_model)
