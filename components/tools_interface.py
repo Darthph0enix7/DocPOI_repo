@@ -112,7 +112,8 @@ def create_tools_interface():
             
             # Function to load saved tool code
             def load_tool_code(tool_name):
-                # Load existing tool and update tool name input
+                if isinstance(tool_name, list):
+                    tool_name = tool_name[0]  # Get the first element if it's a list
                 tool_code = saved_tools.get(tool_name, "")
                 return tool_code, tool_name
             
