@@ -92,7 +92,12 @@ def update_saved_tools():
 
 # Gradio interface
 def create_tools_interface():
-    gr.Markdown("# Custom Tool Creator for Chatbot Agent")
+    with gr.Row():
+        with gr.Column(scale=20):
+            gr.Markdown("# Custom Tool Creator for Chatbot Agent")
+        with gr.Column(scale=1, min_width=1):
+            info_btn = gr.Button("",icon="github/189664.png", link="https://eren.enpoi.com/#:~:text=Eren%20Kalinsazlioglu.")
+    
     # Code editor
     code_editor = gr.Code(label="Tool Code", language="python", lines=20)
     
@@ -133,4 +138,3 @@ def create_tools_interface():
     
     # Update saved tools dropdown after saving
     save_btn.click(lambda: list(saved_tools.keys()), None, saved_tools_dropdown)
-
