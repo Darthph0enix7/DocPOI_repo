@@ -161,7 +161,7 @@ def bot_response(history):
             tool_name = tool_call['function']['name']
             tool_arguments = tool_call['function']['arguments']
             tool_metadata = f"🛠️ Used tool {tool_name} with arguments: {tool_arguments}"
-            history.append(["Bot", tool_metadata])
+            history.append(["bot", tool_metadata])
             yield history
 
     # Stream the response character by character
