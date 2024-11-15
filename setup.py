@@ -238,7 +238,7 @@ def initial_setup():
     print("A) NVIDIA")
     print("B) AMD")
     print("C) Apple M Series")
-    print("D) None (I want to run in CPU mode)")
+    print("D) None (CPU or Openai API mode)")
     print()
     gpuchoice = input("Input> ").lower()
 
