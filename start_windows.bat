@@ -21,6 +21,9 @@ set INSTALL_ENV_DIR=%cd%\installer_files\env
 set MINICONDA_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
 set OLLAMA_PATH=%LocalAppData%\Programs\Ollama\ollama.exe
 set OLLAMA_DOWNLOAD_URL=https://ollama.com/download/OllamaSetup.exe
+set POPPLER_DOWNLOAD_URL=https://github.com/oschwartz10612/poppler-windows/releases/download/v24.07.0-0/Release-24.07.0-0.zip
+set POPPLER_PATH=%INSTALL_DIR%\poppler-24.07.0
+set TESSDATA_REPO_URL=https://github.com/Darthph0enix7/Tesseract_Tessdata_current.git
 
 set conda_exists=F
 
@@ -70,6 +73,27 @@ if not exist "%OLLAMA_PATH%" (
     "%INSTALL_DIR%\ollama_installer.exe" /S
 ) else (
     echo Ollama is already installed at %OLLAMA_PATH%.
+)
+
+@rem Check for and download tessdata if not already downloaded
+if not exist "%INSTALL_DIR%\tessdata" (
+    echo Cloning tessdata repository from %TESSDATA_REPO_URL% to %INSTALL_DIR%\tessdata
+    git clone %TESSDATA_REPO_URL% "%INSTALL_DIR%\tessdata" || ( echo. && echo Tessdata repository failed to clone. && goto end )
+
+    echo Tessdata successfully cloned.
+) else (
+    echo Tessdata is already downloaded at %INSTALL_DIR%.
+)
+
+@rem Check for and unzip Poppler if not already unzipped
+if not exist "%POPPLER_PATH%" (
+    echo Downloading Poppler from %POPPLER_DOWNLOAD_URL% to %INSTALL_DIR%\poppler.zip
+    curl -L -o "%INSTALL_DIR%\poppler.zip" %POPPLER_DOWNLOAD_URL% || ( echo. && echo Poppler failed to download. && goto end )
+
+    echo Unzipping Poppler to %INSTALL_DIR%
+    tar -xf "%INSTALL_DIR%\poppler.zip" -C "%INSTALL_DIR%"
+) else (
+    echo Poppler is already unzipped at %POPPLER_PATH%.
 )
 
 @rem run the Python script

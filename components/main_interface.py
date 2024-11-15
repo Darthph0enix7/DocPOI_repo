@@ -8,6 +8,7 @@ from components.settings import create_settings_interface
 from components.param_manager import ParamManager
 from components.tools_interface import create_tools_interface
 from components.models import setup_models
+from main import is_setup_needed
 
 from langchain_chroma import Chroma
 from langchain.indexes import SQLRecordManager, index
@@ -23,7 +24,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 config = {}
 
-llm, embeddings = setup_models()
+
+
+# Check if setup is needed and create setup.flag if necessary
+if is_setup_needed():
+    # Wait until setup.flag is created
+    while not os.path.exists("setup.flag"):
+        logger.info("Waiting for setup to complete...")
+        time.sleep(5)  # Wait for 5 seconds before checking again
+else:
+    llm, embeddings = setup_models()
+    
+
 namespace = f"chroma/collection"
 record_manager = SQLRecordManager(
     namespace, db_url="sqlite:///record_manager_cache.sql"

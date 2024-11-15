@@ -84,6 +84,30 @@ if ! command -v ollama &> /dev/null; then
     curl -fsSL https://ollama.com/install.sh | sh
 fi
 
+poppler_installed=$(command -v pdftocairo &> /dev/null && echo "yes" || echo "no")
+
+# Install Poppler if not installed
+if [ "$poppler_installed" == "no" ]; then
+    echo "Installing Poppler utilities..."
+    echo "$sudo_password" | eval "$POPPLER_INSTALL_CMD"
+else
+    echo "Poppler utilities are already installed."
+fi
+
+# Check for and download tessdata if not already downloaded
+if [ ! -d "$INSTALL_DIR/tessdata" ]; then
+    echo "Cloning tessdata repository from $TESSDATA_REPO_URL to $INSTALL_DIR/tessdata"
+    git clone "$TESSDATA_REPO_URL" "$INSTALL_DIR/tessdata" || {
+        echo
+        echo "Tessdata repository failed to clone."
+        exit 1
+    }
+
+    echo "Tessdata successfully cloned."
+else
+    echo "Tessdata is already downloaded at $INSTALL_DIR."
+fi
+
 # Run the main Python script
 python setup.py "$@"
 

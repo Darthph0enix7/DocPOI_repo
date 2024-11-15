@@ -13,6 +13,9 @@ langchain_community==0.2.11
 langchain_experimental==0.0.62
 langchain_huggingface==0.0.3
 langchain-chroma>=0.1.2
+langchain_openai
+langchain-ollama
+langgraph
 langchain==0.2.12
 ffmpeg-python==0.2.0
 langsmith==0.1.108
