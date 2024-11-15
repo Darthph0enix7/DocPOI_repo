@@ -8,6 +8,7 @@ from components.settings import create_settings_interface
 from components.param_manager import ParamManager
 from components.tools_interface import create_tools_interface
 from components.models import setup_models
+from components.file_loaders import init_loaders
 from main import is_setup_needed
 
 from langchain_chroma import Chroma
@@ -25,16 +26,15 @@ logger = logging.getLogger(__name__)
 config = {}
 
 
-
-# Check if setup is needed and create setup.flag if necessary
 if is_setup_needed():
-    # Wait until setup.flag is created
     while not os.path.exists("setup.flag"):
         logger.info("Waiting for setup to complete...")
-        time.sleep(5)  # Wait for 5 seconds before checking again
+        time.sleep(5)
 else:
     llm, embeddings = setup_models()
-    
+
+DocPOIDirectoryLoader, DocPOI = init_loaders(embeddings)
+
 
 namespace = f"chroma/collection"
 record_manager = SQLRecordManager(
