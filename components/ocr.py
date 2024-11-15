@@ -145,11 +145,11 @@ def process_files_in_directory(directory_path: str, only_pdf: bool = False) -> N
             for file_name in files:
                 file_path = os.path.join(root, file_name)
                 file_extension = os.path.splitext(file_name)[1].lower()
-                
+
                 if only_pdf and file_extension != '.pdf':
                     print(f"Skipping non-PDF file: {file_path}")
                     continue
-                
+
                 print(f"Processing file: {file_path}")
                 ocr_file(file_path)
     except Exception as e:
