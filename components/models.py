@@ -8,7 +8,7 @@ params = param_manager.get_all_params()
 # Extract required parameters
 agent_type = params.get('agent_type')
 
-def setup_models():
+def setup_models(temperature=None, num_predict=None):
     llm = None
     embeddings = None
 
@@ -18,6 +18,7 @@ def setup_models():
         base_url = params.get("base_url")
         api_key = params.get('api_key')
         model_name = params.get('model_name', "gpt4o-mini")
+        max_tokens = num_predict if num_predict is not None else 100  # Default max_tokens if not provided
         
         from langchain_openai import OpenAIEmbeddings
         from langchain_openai import ChatOpenAI
@@ -33,6 +34,8 @@ def setup_models():
             base_url=base_url,
             api_key=api_key,
             max_retries=5,
+            max_tokens=max_tokens,
+            temperature=temperature
         )
 
     elif agent_type == "LLMChain":
@@ -52,6 +55,8 @@ def setup_models():
 
         llm = ChatOllama(
             model=translated_local_model,
+            temperature=temperature,
+            num_predict=num_predict
         )
 
         if embed_model is None:
@@ -85,6 +90,8 @@ def setup_models():
 
         llm = ChatOllama(
             model=translated_local_model,
+            temperature=temperature,
+            num_predict=num_predict
         )
 
         if embed_model is None:

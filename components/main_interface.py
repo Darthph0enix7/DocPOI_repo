@@ -10,7 +10,7 @@ from components.tools_interface import create_tools_interface
 from components.models import setup_models
 from components.file_loaders import init_loaders
 from main import is_setup_needed
-
+from components.metadata_creation import generate_metadata_and_name
 from langchain_chroma import Chroma
 from langchain.indexes import SQLRecordManager, index
 from langchain_core.documents import Document
@@ -31,6 +31,8 @@ if is_setup_needed():
         logger.info("Waiting for setup to complete...")
         time.sleep(5)
 else:
+    naming_llm, embeddings = setup_models(temperature=0.5, num_predict=30)
+    metadata_llm, embeddings = setup_models(temperature=0.9)
     llm, embeddings = setup_models()
 
 DocPOIDirectoryLoader, DocPOI = init_loaders(embeddings)
