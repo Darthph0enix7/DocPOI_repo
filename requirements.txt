@@ -12,6 +12,7 @@ langchain_core==0.2.28
 langchain_community==0.2.11
 langchain_experimental==0.0.62
 langchain_huggingface==0.0.3
+langchain-chroma>=0.1.2
 langchain==0.2.12
 ffmpeg-python==0.2.0
 langsmith==0.1.108
