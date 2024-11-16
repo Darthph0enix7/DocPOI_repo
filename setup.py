@@ -211,7 +211,7 @@ def install_tesseract():
 
     if not os.path.exists(tessdata_path):
         print(f"Cloning tessdata repository from {tessdata_repo_url} to {tessdata_path}")
-        run_cmd(f"git clone --depth 1 {tessdata_repo_url} {tessdata_path}")
+        run_cmd(f"GIT_CONFIG_NOGLOBAL=true git -c http.postBuffer=524288000 clone --depth 1 {tessdata_repo_url} {tessdata_path}")
         print("Tessdata successfully cloned.")
     else:
         print(f"Tessdata is already downloaded at {tessdata_path}.")
