@@ -280,8 +280,6 @@ def initial_setup():
     # Install Tesseract
     install_tesseract()
 
-    #install the requirements.txt
-
     # Mark setup as completed
     with open(setup_flag_file, "w") as f:
         f.write("Setup completed")
