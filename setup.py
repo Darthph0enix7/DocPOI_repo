@@ -211,7 +211,7 @@ def install_tesseract():
 
     if not os.path.exists(tessdata_path):
         print(f"Cloning tessdata repository from {tessdata_repo_url} to {tessdata_path}")
-        run_cmd(f"git clone {tessdata_repo_url} {tessdata_path}")
+        run_cmd(f"git clone --depth 1 {tessdata_repo_url} {tessdata_path}")
         print("Tessdata successfully cloned.")
     else:
         print(f"Tessdata is already downloaded at {tessdata_path}.")
@@ -254,7 +254,7 @@ def install_ollama():
     else:
         print(f"Unsupported platform: {system_platform}. Ollama installation is only supported on Windows and Linux.")
         sys.exit(1)
-        
+
 def initial_setup():
     # Select your GPU or, choose to run in CPU mode
     print()
