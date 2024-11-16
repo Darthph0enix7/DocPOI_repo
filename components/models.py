@@ -1,5 +1,8 @@
 from components.param_manager import ParamManager
 import os
+from langchain_ollama import OllamaEmbeddings, ChatOllama
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # Initialize ParamManager
 param_manager = ParamManager()
@@ -20,9 +23,6 @@ def setup_models(temperature=None, num_predict=None):
         model_name = params.get('model_name', "gpt4o-mini")
         max_tokens = num_predict if num_predict is not None else 100  # Default max_tokens if not provided
         
-        from langchain_openai import OpenAIEmbeddings
-        from langchain_openai import ChatOpenAI
-
         embeddings = OpenAIEmbeddings(
             model=embed_model,
             base_url=base_url,
@@ -51,8 +51,6 @@ def setup_models(temperature=None, num_predict=None):
 
         translated_local_model = model_translation.get(local_model, local_model)
 
-        from langchain_ollama import ChatOllama
-
         llm = ChatOllama(
             model=translated_local_model,
             temperature=temperature,
@@ -60,14 +58,12 @@ def setup_models(temperature=None, num_predict=None):
         )
 
         if embed_model is None:
-            from langchain_ollama import OllamaEmbeddings
 
             embeddings = OllamaEmbeddings(
                 model=translated_local_model,
             )
         
         else:
-            from langchain_huggingface import HuggingFaceEmbeddings
 
             embeddings = HuggingFaceEmbeddings(
                 model=embed_model,
@@ -85,8 +81,6 @@ def setup_models(temperature=None, num_predict=None):
         }
 
         translated_local_model = model_translation.get(local_model, local_model)
-
-        from langchain_ollama import ChatOllama
 
         llm = ChatOllama(
             model=translated_local_model,
