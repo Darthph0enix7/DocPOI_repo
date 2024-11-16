@@ -229,6 +229,31 @@ def install_requirements():
         run_cmd(f"pip install -r {requirements_path}")
     else:
         print("requirements.txt not found. Skipping installation of requirements.")
+
+def install_ollama():
+    system_platform = platform.system()
+
+    if system_platform == "Windows":
+        ollama_path = os.path.join(os.getenv('LocalAppData'), 'Programs', 'Ollama', 'ollama.exe')
+        ollama_download_url = 'https://ollama.com/download/OllamaSetup.exe'
+        install_dir = os.getenv('TEMP')  # Using TEMP directory for downloading the installer
+
+        if not os.path.exists(ollama_path):
+            print(f"Downloading Ollama from {ollama_download_url} to {install_dir}\\ollama_installer.exe")
+            run_cmd(f'curl -L -o "{install_dir}\\ollama_installer.exe" {ollama_download_url}')
+            print("Installing Ollama")
+            run_cmd(f'"{install_dir}\\ollama_installer.exe" /S')
+        else:
+            print(f"Ollama is already installed at {ollama_path}.")
+    elif system_platform == "Linux":
+        if subprocess.run("command -v ollama", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode != 0:
+            print("Ollama is not installed. Installing Ollama...")
+            run_cmd("curl -fsSL https://ollama.com/install.sh | sh")
+        else:
+            print("Ollama is already installed.")
+    else:
+        print(f"Unsupported platform: {system_platform}. Ollama installation is only supported on Windows and Linux.")
+        sys.exit(1)
         
 def initial_setup():
     # Select your GPU or, choose to run in CPU mode
@@ -256,10 +281,16 @@ def initial_setup():
 
         # Allow the user to select a GPU if multiple are available
         select_gpu(system_info)
+
+        install_ollama()
     elif gpuchoice == "b":
         print("AMD GPUs are not supported yet. Try CPU installation. Exiting...")
         sys.exit()
-    elif gpuchoice == "c" or gpuchoice == "d":
+    elif gpuchoice == "c":
+        run_cmd("conda install -y -k pytorch torchvision torchaudio cpuonly ninja git curl -c pytorch")
+        install_ollama()
+
+    elif gpuchoice == "d":
         run_cmd("conda install -y -k pytorch torchvision torchaudio cpuonly ninja git curl -c pytorch")
         
         # Gather system information after installing PyTorch

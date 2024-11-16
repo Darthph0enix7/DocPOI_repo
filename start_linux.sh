@@ -78,12 +78,6 @@ conda activate "$INSTALL_ENV_DIR"
 # Ensure necessary Python modules are installed
 python -c "import requests" 2>/dev/null || python -m pip install requests psutil
 
-# Check if ollama is installed, if not, install it
-if ! command -v ollama &> /dev/null; then
-    echo "ollama is not installed. Installing ollama..."
-    curl -fsSL https://ollama.com/install.sh | sh
-fi
-
 # Run the main Python script
 python setup.py "$@"
 

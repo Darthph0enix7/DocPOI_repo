@@ -19,8 +19,6 @@ set INSTALL_DIR=%cd%\installer_files
 set CONDA_ROOT_PREFIX=%cd%\installer_files\conda
 set INSTALL_ENV_DIR=%cd%\installer_files\env
 set MINICONDA_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
-set OLLAMA_PATH=%LocalAppData%\Programs\Ollama\ollama.exe
-set OLLAMA_DOWNLOAD_URL=https://ollama.com/download/OllamaSetup.exe
 
 set conda_exists=F
 
@@ -61,16 +59,6 @@ call python -c "import requests" 2>nul || (
     call python -m pip install requests psutil || ( echo. && echo Failed to install requests. && goto end )
 )
 
-@rem Check for and install Ollama if not installed
-if not exist "%OLLAMA_PATH%" (
-    echo Downloading Ollama from %OLLAMA_DOWNLOAD_URL% to %INSTALL_DIR%\ollama_installer.exe
-    curl -L -o "%INSTALL_DIR%\ollama_installer.exe" %OLLAMA_DOWNLOAD_URL% || ( echo. && echo Ollama failed to download. && goto end )
-
-    echo Installing Ollama
-    "%INSTALL_DIR%\ollama_installer.exe" /S
-) else (
-    echo Ollama is already installed at %OLLAMA_PATH%.
-)
 
 @rem run the Python script
 call python setup.py %*
