@@ -11,7 +11,7 @@ params = param_manager.get_all_params()
 # Extract required parameters
 agent_type = params.get('agent_type')
 
-def setup_models(temperature=None, num_predict=None):
+def setup_models(temperature=0.9, num_predict=8000):
     llm = None
     embeddings = None
 
@@ -21,7 +21,7 @@ def setup_models(temperature=None, num_predict=None):
         base_url = params.get("base_url")
         api_key = params.get('api_key')
         model_name = params.get('model_name', "gpt4o-mini")
-        max_tokens = num_predict if num_predict is not None else 100  # Default max_tokens if not provided
+        max_tokens = num_predict 
         
         embeddings = OpenAIEmbeddings(
             model=embed_model,
