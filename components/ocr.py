@@ -138,7 +138,7 @@ def ocr_file(input_file_path):
         print(f"Error during OCR: {e}")
         return None
 
-def process_files_in_directory(directory_path: str, only_pdf: bool = False) -> None:
+def ocr_directory(directory_path: str, only_pdf: bool = False) -> None:
     """Process all files in a directory, optionally only processing PDF files."""
     try:
         for root, _, files in os.walk(directory_path):

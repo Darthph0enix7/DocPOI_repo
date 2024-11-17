@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import shutil
 from datetime import datetime
 from collections import OrderedDict
 from PyPDF2 import PdfReader, PdfWriter
@@ -40,7 +41,7 @@ def update_pdfmetadata(file_path: str, new_metadata: dict) -> None:
         with open(file_path, "wb") as updated_file:
             writer.write(updated_file)
 
-def generate_metadata_and_name(file_path, metadata_llm, naming_llm):
+def generate_metadata_and_name(file_path, metadata_llm, naming_llm, default_folder=True):
     # Load the document content
     file_extension = os.path.splitext(file_path)[1].lower()
     
@@ -59,7 +60,7 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm):
 
     # Invoke the chain with the document content
     metadata_result = metadata_chain.invoke({
-       "context": docs
+        "context": docs
     })
 
     # Extract the content from the result
@@ -73,9 +74,9 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm):
 
     # Ensure all keys have values that are basic lists or primitive types
     def collapse_dicts(value):
-      if isinstance(value, list):
-          return [item['name'] if isinstance(item, dict) and 'name' in item else item for item in value]
-      return value
+        if isinstance(value, list):
+            return [item['name'] if isinstance(item, dict) and 'name' in item else item for item in value]
+        return value
 
     metadata = {key: collapse_dicts(value) for key, value in metadata.items()}
 
@@ -99,7 +100,6 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm):
 
     # Replace spaces in document name with underscores
     document_name = temp_document_name.replace(" ", "_")
-    # Determine the file extension
 
     # Load the metadata JSON
     metadata = json.loads(formatted_metadata)
@@ -110,7 +110,7 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm):
 
     # Generate a unique ID for the document
     document_id = str(uuid.uuid4())
- 
+
     # Get file details
     file_directory = os.path.dirname(file_path)
     original_file_name = os.path.basename(file_path)
@@ -130,12 +130,18 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm):
 
     # Format the metadata in a readable format
     formatted_metadata = json.dumps(ordered_metadata, indent=4, ensure_ascii=False)
- 
+
     # Save the metadata to a JSON file with the same name as the document
     metadata_file_path = os.path.join(file_directory, f"{document_name}.json")
     with open(metadata_file_path, 'w', encoding='utf-8') as f:
-       f.write(formatted_metadata)
-       
+        f.write(formatted_metadata)
+
+    # Set up the documents folder
+    documents_folder = os.path.join(os.path.dirname(__file__), 'documents')
+    if default_folder:
+        os.makedirs(documents_folder, exist_ok=True)
+
+    # Rename the original file
     if file_extension == ".pdf":
         # Update PDF metadata with relevant keys (only for PDFs)
         pdf_metadata = {
@@ -144,13 +150,20 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm):
             "/given_document_name": document_name
         }
         update_pdfmetadata(file_path, pdf_metadata)
-        # Rename the original PDF file to the new document name
         new_file_path = os.path.join(file_directory, f"{document_name}.pdf")
     elif file_extension == ".txt":
-        # Rename the original TXT file to the new document name
         new_file_path = os.path.join(file_directory, f"{document_name}.txt")
     
     os.rename(file_path, new_file_path)
 
-    
+    # Copy to default folder if required
+    if default_folder:
+        processed_file_destination = os.path.join(documents_folder, os.path.basename(new_file_path))
+        metadata_file_destination = os.path.join(documents_folder, os.path.basename(metadata_file_path))
+
+        # Copy files to the documents folder
+        shutil.copy(new_file_path, processed_file_destination)
+        shutil.copy(metadata_file_path, metadata_file_destination)
+
+    # Return the document name and metadata
     return document_name, formatted_metadata
