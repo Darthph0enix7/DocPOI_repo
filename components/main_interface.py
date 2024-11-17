@@ -71,7 +71,7 @@ agent_executor = create_react_agent(
 config = {"configurable": {"thread_id": "default"}}
 
 
-def process_file(file):
+def button_file(file):
     docs = process_file(file, DocPOIloader, metadata_llm, naming_llm)
     index(
         docs,
@@ -81,7 +81,7 @@ def process_file(file):
         source_id_key="document_id",
     )
 
-def process_folder():
+def button_folder():
     folder_path = param_manager.get_param('directory', default=None)
     if folder_path is None:
         documents_folder = os.path.join(os.path.dirname(__file__), 'documents')
@@ -247,10 +247,10 @@ with gr.Blocks(theme=gr.themes.Soft(text_size="sm"), css="footer{display:none !i
                 
                 # New buttons
                 upload_button = gr.UploadButton("Click to Upload a File")
-                upload_button.upload(process_file, upload_button)
+                upload_button.upload(button_file, upload_button)
                 
                 process_folder_button = gr.Button("Process Folder")
-                process_folder_button.click(process_folder)
+                process_folder_button.click(button_folder)
 
             # State variable to track visibility
             pdf_visible = gr.State(False)
