@@ -41,7 +41,6 @@ else:
 
 DocPOIDirectoryLoader, DocPOI = init_loaders(embeddings)
 
-
 namespace = f"chroma/collection"
 record_manager = SQLRecordManager(
     namespace, db_url="sqlite:///record_manager_cache.sql"
