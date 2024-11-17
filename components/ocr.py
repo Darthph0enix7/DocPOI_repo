@@ -96,7 +96,9 @@ def ocr_file(input_file_path):
 
         # Check if PDF already contains readable text and required metadata keys
         required_metadata_keys = ["/document_id", "/original_file_name", "/given_document_name"]
-        if check_pdf_has_readable_text(input_file_path) and check_pdf_metadata_keys(input_file_path, required_metadata_keys):
+        #if check_pdf_has_readable_text(input_file_path) and check_pdf_metadata_keys(input_file_path, required_metadata_keys):
+
+        if check_pdf_has_readable_text(input_file_path):
             print(f"The PDF {input_file_path} already contains readable text and the required metadata keys. Skipping OCR.")
             return input_file_path
         
