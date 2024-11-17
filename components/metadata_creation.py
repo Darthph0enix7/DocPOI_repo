@@ -141,7 +141,6 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm, default_fold
     if default_folder:
         os.makedirs(documents_folder, exist_ok=True)
 
-    # Rename the original file
     if file_extension == ".pdf":
         # Update PDF metadata with relevant keys (only for PDFs)
         pdf_metadata = {
@@ -154,16 +153,20 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm, default_fold
     elif file_extension == ".txt":
         new_file_path = os.path.join(file_directory, f"{document_name}.txt")
     
-    os.rename(file_path, new_file_path)
+    # Ensure no overwriting issues occur during renaming
+    if not os.path.exists(new_file_path):
+        os.rename(file_path, new_file_path)
 
     # Copy to default folder if required
     if default_folder:
         processed_file_destination = os.path.join(documents_folder, os.path.basename(new_file_path))
         metadata_file_destination = os.path.join(documents_folder, os.path.basename(metadata_file_path))
 
-        # Copy files to the documents folder
-        shutil.copy(new_file_path, processed_file_destination)
-        shutil.copy(metadata_file_path, metadata_file_destination)
+        # Check if the file already exists in the destination folder
+        if not os.path.exists(processed_file_destination):
+            shutil.copy(new_file_path, processed_file_destination)
+        if not os.path.exists(metadata_file_destination):
+            shutil.copy(metadata_file_path, metadata_file_destination)
 
     # Return the document name and metadata
     return document_name, formatted_metadata
