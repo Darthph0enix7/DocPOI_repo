@@ -9,7 +9,7 @@ param_manager = ParamManager()
 params = param_manager.get_all_params()
 
 def process_file(file, file_loader, metadata_llm, naming_llm):
-    copy_docs = param_manager.get_param('copy_docs', default=False)
+    copy_docs = param_manager.get_param('copy_docs', default=True)
     
     if copy_docs:
         documents_folder = os.path.join(os.path.dirname(__file__), 'documents')
@@ -45,7 +45,7 @@ def process_file(file, file_loader, metadata_llm, naming_llm):
 
 
 def process_folder(folder_path, folder_loader, metadata_llm, naming_llm):
-    copy_docs = param_manager.get_param('copy_docs', default=False)
+    copy_docs = param_manager.get_param('copy_docs', default=True)
     
     if copy_docs:
         documents_folder = os.path.join(os.path.dirname(__file__), 'documents')

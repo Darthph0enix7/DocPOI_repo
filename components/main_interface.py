@@ -9,8 +9,9 @@ from components.param_manager import ParamManager
 from components.tools_interface import create_tools_interface
 from components.models import setup_models
 from components.file_loaders import init_loaders
+from components.file_handling import process_file, process_folder
 from main import is_setup_needed
-from components.metadata_creation import generate_metadata_and_name
+
 from langchain_chroma import Chroma
 from langchain.indexes import SQLRecordManager, index
 from langchain_core.documents import Document
@@ -25,11 +26,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 config = {}
 
-
 if is_setup_needed():
     while not os.path.exists("setup.flag"):
         logger.info("Waiting for setup to complete...")
         time.sleep(1)
+    
     # Setup is complete, now initialize the models and loaders
     naming_llm, embeddings = setup_models(temperature=0.5, num_predict=30)
     metadata_llm, embeddings = setup_models(temperature=0.9)
@@ -39,7 +40,7 @@ else:
     metadata_llm, embeddings = setup_models(temperature=0.9)
     llm, embeddings = setup_models()
 
-DocPOIDirectoryLoader, DocPOI = init_loaders(embeddings)
+DocPOIDirectoryLoader, DocPOIloader = init_loaders(embeddings)
 
 namespace = f"chroma/collection"
 record_manager = SQLRecordManager(
@@ -49,7 +50,7 @@ record_manager.create_schema()
 vectorstore = Chroma(
     collection_name="collection",
     embedding_function=embeddings,
-    persist_directory="./chroma_langchain_db",  # Where to save data locally, remove if not necessary
+    persist_directory="./chroma_db",
 )
 retriever = vectorstore.as_retriever(
         search_type="similarity_score_threshold",
@@ -68,6 +69,31 @@ agent_executor = create_react_agent(
     llm, tools, checkpointer=memory, state_modifier=system_prompt
 )
 config = {"configurable": {"thread_id": "default"}}
+
+
+def process_file(file):
+    docs = process_file(file, DocPOIloader, metadata_llm, naming_llm)
+    index(
+        docs,
+        record_manager,
+        vectorstore,
+        cleanup="incremental",
+        source_id_key="document_id",
+    )
+
+def process_folder():
+    folder_path = param_manager.get_param('directory', default=None)
+    if folder_path is None:
+        documents_folder = os.path.join(os.path.dirname(__file__), 'documents')
+        folder_path = documents_folder
+    docs = process_folder(folder_path, DocPOIDirectoryLoader, metadata_llm, naming_llm)
+    index(
+        docs,
+        record_manager,
+        vectorstore,
+        cleanup="incremental",
+        source_id_key="document_id",
+    )    
 
 def send_message(message):
     logger.info(f"Received message: {message}")
@@ -218,7 +244,14 @@ with gr.Blocks(theme=gr.themes.Soft(text_size="sm"), css="footer{display:none !i
                 chatbot.like(print_like_dislike, None, None)
                 #stop_button.click(stop_all_streaming)
                 reset_button.click(reset_conversation, [], [chatbot, chatbot])
-            
+                
+                # New buttons
+                upload_button = gr.UploadButton("Click to Upload a File")
+                upload_button.upload(process_file, upload_button)
+                
+                process_folder_button = gr.Button("Process Folder")
+                process_folder_button.click(process_folder)
+
             # State variable to track visibility
             pdf_visible = gr.State(False)
             
