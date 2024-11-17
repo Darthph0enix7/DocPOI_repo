@@ -29,7 +29,10 @@ config = {}
 if is_setup_needed():
     while not os.path.exists("setup.flag"):
         logger.info("Waiting for setup to complete...")
-        time.sleep(5)
+    # Setup is complete, now initialize the models and loaders
+    naming_llm, embeddings = setup_models(temperature=0.5, num_predict=30)
+    metadata_llm, embeddings = setup_models(temperature=0.9)
+    llm, embeddings = setup_models()
 else:
     naming_llm, embeddings = setup_models(temperature=0.5, num_predict=30)
     metadata_llm, embeddings = setup_models(temperature=0.9)
