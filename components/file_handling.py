@@ -56,15 +56,21 @@ def process_folder(folder_path, folder_loader, metadata_llm, naming_llm):
     
     # Process the entire folder using OCR
     ocr_directory(folder_path)
-    
+
     # Generate metadata and new document names for each file
     for root, _, files in os.walk(folder_path):
         for file in files:
             file_path = os.path.join(root, file)
+            file_extension = os.path.splitext(file_path)[1].lower()
+
+            # Only process .txt and .pdf files for metadata creation
+            if file_extension not in ['.txt', '.pdf']:
+                print(f"Skipping metadata creation for unsupported file: {file_path}")
+                continue
+
             new_document_name = generate_metadata_and_name(file_path, metadata_llm, naming_llm, default_folder=copy_docs)
             
             file_directory = os.path.dirname(file_path)
-            file_extension = os.path.splitext(file_path)[1]
             new_destination = os.path.join(file_directory, f"{new_document_name}{file_extension}")
             
             if os.path.exists(file_path):
@@ -75,9 +81,9 @@ def process_folder(folder_path, folder_loader, metadata_llm, naming_llm):
                     new_destination = possible_new_path
                 else:
                     return "File not found during renaming."
-    
+
     # Load all files in the folder
     loader = folder_loader(folder_path=documents_folder)
     documents = loader.load()
-    
+
     return documents

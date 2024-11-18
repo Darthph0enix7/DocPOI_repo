@@ -142,6 +142,8 @@ def ocr_file(input_file_path):
 
 def ocr_directory(directory_path: str, only_pdf: bool = False) -> None:
     """Process all files in a directory, optionally only processing PDF files."""
+    valid_extensions = ['.pdf', '.txt', '.jpg', '.jpeg', '.png']
+    
     try:
         for root, _, files in os.walk(directory_path):
             for file_name in files:
@@ -150,6 +152,10 @@ def ocr_directory(directory_path: str, only_pdf: bool = False) -> None:
 
                 if only_pdf and file_extension != '.pdf':
                     print(f"Skipping non-PDF file: {file_path}")
+                    continue
+
+                if file_extension not in valid_extensions:
+                    print(f"Skipping unsupported file: {file_path}")
                     continue
 
                 print(f"Processing file: {file_path}")
