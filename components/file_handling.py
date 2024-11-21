@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 from components.param_manager import ParamManager
 from components.ocr import ocr_file, ocr_directory
@@ -7,6 +8,10 @@ from components.metadata_creation import generate_metadata_and_name
 # Initialize ParamManager
 param_manager = ParamManager()
 params = param_manager.get_all_params()
+
+def sanitize_filename(filename):
+    # Remove invalid characters for filenames
+    return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
 def process_file(file, file_loader, metadata_llm, naming_llm):
     copy_docs = param_manager.get_param('copy_docs', default=True)
@@ -24,7 +29,14 @@ def process_file(file, file_loader, metadata_llm, naming_llm):
     ocr_file(destination)
     
     # Generate metadata and new document name
-    new_document_name = generate_metadata_and_name(destination, metadata_llm, naming_llm, default_folder=copy_docs)
+    new_document_name, formatted_metadata = generate_metadata_and_name(destination, metadata_llm, naming_llm, default_folder=copy_docs)
+    
+    # Ensure new_document_name is a string
+    if not isinstance(new_document_name, str):
+        raise TypeError(f"The generated document name is not a string. {new_document_name}")
+    
+    # Sanitize the new document name
+    new_document_name = sanitize_filename(new_document_name)
     
     file_directory = os.path.dirname(destination)
     file_extension = os.path.splitext(destination)[1]
@@ -39,8 +51,7 @@ def process_file(file, file_loader, metadata_llm, naming_llm):
         else:
             return "File not found during renaming."
     
-    loader = file_loader(file_path=new_destination)
-    documents = loader.load()
+    documents = file_loader.load(file_path=new_destination)
     return documents
 
 
@@ -83,7 +94,6 @@ def process_folder(folder_path, folder_loader, metadata_llm, naming_llm):
                     return "File not found during renaming."
 
     # Load all files in the folder
-    loader = folder_loader(folder_path=documents_folder)
-    documents = loader.load()
+    documents = folder_loader.load(folder_path=documents_folder)
 
     return documents
