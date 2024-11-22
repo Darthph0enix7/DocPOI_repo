@@ -11,5 +11,5 @@ temp.pdf
 chroma_langchain_db
 user_tools
 record_manager_cache.sql
-components\documents
+components/documents
 chroma_db

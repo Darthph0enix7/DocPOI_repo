@@ -16,7 +16,8 @@ def init_loaders(embeddings) -> tuple:
         def __init__(self) -> None:
             pass
 
-        def load(self, directory_path: str, metadata_path: Optional[str] = None) -> List[Document]:
+        @staticmethod
+        def load(directory_path: str, metadata_path: Optional[str] = None) -> List[Document]:
             metadata_path = metadata_path or directory_path
             documents = []
             for filename in os.listdir(directory_path):
@@ -33,13 +34,19 @@ def init_loaders(embeddings) -> tuple:
                 if 'document_id' not in metadata:
                     metadata['document_id'] = os.path.splitext(filename)[0]
 
+                # Convert lists in metadata to comma-separated strings
+                for key, value in metadata.items():
+                    if isinstance(value, list):
+                        metadata[key] = ', '.join(value)
+
                 if filename.endswith('.pdf'):
-                    documents.extend(self.load_pdf(file_path, metadata))
+                    documents.extend(DocPOIDirectoryLoader.load_pdf(file_path, metadata))
                 elif filename.endswith('.txt'):
-                    documents.extend(self.load_text(file_path, metadata))
+                    documents.extend(DocPOIDirectoryLoader.load_text(file_path, metadata))
             return documents
 
-        def load_pdf(self, file_path: str, metadata: dict) -> List[Document]:
+        @staticmethod
+        def load_pdf(file_path: str, metadata: dict) -> List[Document]:
             with fitz.open(file_path) as pdf_document:
                 full_text = ''.join([pdf_document.load_page(page_number).get_text() for page_number in range(len(pdf_document))])
 
@@ -52,7 +59,8 @@ def init_loaders(embeddings) -> tuple:
                 ) for page_number, chunk in enumerate(chunks)
             ]
 
-        def load_text(self, file_path: str, metadata: dict) -> List[Document]:
+        @staticmethod
+        def load_text(file_path: str, metadata: dict) -> List[Document]:
             with open(file_path, 'r', encoding='utf-8') as f:
                 text_content = f.read()
 
@@ -71,7 +79,8 @@ def init_loaders(embeddings) -> tuple:
         def __init__(self) -> None:
             pass
 
-        def load(self, file_path: str, metadata_path: str = None) -> list:
+        @staticmethod
+        def load(file_path: str, metadata_path: str = None) -> list:
             """
             Load and process the file, returning a list of Document objects.
             Args:
@@ -85,11 +94,10 @@ def init_loaders(embeddings) -> tuple:
                     metadata_path = assumed_metadata_path
                 else:
                     print("No metadata file found, proceeding without external metadata.")
-            self.metadata_path = metadata_path
-
+            
             # Load metadata from a JSON file if provided
-            if self.metadata_path and exists(self.metadata_path):
-                with open(self.metadata_path, 'r') as f:
+            if metadata_path and exists(metadata_path):
+                with open(metadata_path, 'r') as f:
                     metadata = json.load(f)
             else:
                 metadata = {'source': file_path, 'processed_date': datetime.datetime.now().isoformat()}
@@ -97,6 +105,11 @@ def init_loaders(embeddings) -> tuple:
             # Ensure document_id is included in metadata
             if 'document_id' not in metadata:
                 metadata['document_id'] = os.path.splitext(os.path.basename(file_path))[0]
+
+            # Convert lists in metadata to comma-separated strings
+            for key, value in metadata.items():
+                if isinstance(value, list):
+                    metadata[key] = ', '.join(value)
 
             ordered_metadata = OrderedDict(metadata)
 

@@ -4,6 +4,7 @@ import shutil
 from components.param_manager import ParamManager
 from components.ocr import ocr_file, ocr_directory
 from components.metadata_creation import generate_metadata_and_name
+from langchain_community.vectorstores.utils import filter_complex_metadata
 
 # Initialize ParamManager
 param_manager = ParamManager()
