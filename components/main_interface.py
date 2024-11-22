@@ -54,7 +54,7 @@ vectorstore = Chroma(
 )
 retriever = vectorstore.as_retriever(
         search_type="similarity_score_threshold",
-        search_kwargs={'score_threshold': 0.8, 'k': 4, 'filter': None},
+        search_kwargs={'score_threshold': 0.1, 'k': 4, 'filter': None},
     )
 
 tool = create_retriever_tool(
