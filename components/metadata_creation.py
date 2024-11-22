@@ -40,6 +40,35 @@ def update_pdfmetadata(file_path: str, new_metadata: dict) -> None:
         # Save the PDF with the updated metadata back to the same file
         with open(file_path, "wb") as updated_file:
             writer.write(updated_file)
+# Function to limit context to specific token sizes
+def limit_context(documents, total_tokens):
+    total_content = "".join(doc.page_content for doc in documents)
+    
+    # Simulating token length by assuming 1 token ~ 4 characters (this is approximate)
+    total_token_length = len(total_content) // 4
+
+    if total_token_length <= total_tokens:
+        return total_content
+
+    # Calculate approximate character length for each part
+    char_limit_begin = (4000 * 4)
+    char_limit_middle = (2000 * 4)
+    char_limit_end = (1000 * 4)
+    
+    # Extract beginning part
+    beginning_content = total_content[:char_limit_begin]
+    
+    # Extract middle part
+    middle_start_index = len(total_content) // 2 - (char_limit_middle // 2)
+    middle_end_index = middle_start_index + char_limit_middle
+    middle_content = total_content[middle_start_index:middle_end_index]
+
+    # Extract ending part
+    ending_content = total_content[-char_limit_end:]
+    
+    # Combine the three parts
+    combined_content = beginning_content + middle_content + ending_content
+    return combined_content
 
 def generate_metadata_and_name(file_path, metadata_llm, naming_llm, default_folder=True):
     # Load the document content
@@ -53,14 +82,16 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm, default_fold
         raise ValueError("Unsupported file type")
     
     docs = loader.load()
-    metadata_prompt = ChatPromptTemplate.from_template(metadata_template)
+    # Limit context size to 7000 tokens
+    limited_context = limit_context(docs, total_tokens=7000)
 
     # Create the chain for metadata extraction
+    metadata_prompt = ChatPromptTemplate.from_template(metadata_template)
     metadata_chain = metadata_prompt | metadata_llm
 
     # Invoke the chain with the document content
     metadata_result = metadata_chain.invoke({
-        "context": docs
+        "context": limited_context
     })
 
     # Extract the content from the result
