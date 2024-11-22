@@ -83,7 +83,7 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm, default_fold
     
     docs = loader.load()
     # Limit context size to 7000 tokens
-    limited_context = limit_context(docs, total_tokens=7000)
+    limited_context = limit_context(docs, total_tokens=6000)
 
     # Create the chain for metadata extraction
     metadata_prompt = ChatPromptTemplate.from_template(metadata_template)
@@ -121,7 +121,7 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm, default_fold
     # Invoke the chain with the context and metadata
     naming_result = naming_chain.invoke({
         "question": "What is the most suitable name for this document based on its content?",
-        "context": docs,
+        "context": limited_context,
         "metadata": formatted_metadata
     })
 

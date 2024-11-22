@@ -10,7 +10,7 @@ import fitz
 import datetime
 
 def init_loaders(embeddings) -> tuple:
-    text_splitter = SemanticChunker(embeddings, breakpoint_threshold_type="percentile")
+    text_splitter = SemanticChunker(embeddings, breakpoint_threshold_type="standard_deviation")
 
     class DocPOIDirectoryLoader(BaseLoader):
         def __init__(self) -> None:
