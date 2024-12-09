@@ -197,15 +197,6 @@ def bot_response(history):
     
     # Get the bot response using send_message
     bot_reply, tool_calls = send_message(user_message)
-    
-    # Add tool usage metadata if any tools were called
-    if tool_calls:
-        for tool_call in tool_calls:
-            tool_name = tool_call['function']['name']
-            tool_arguments = tool_call['function']['arguments']
-            tool_metadata = f"🛠️ Used tool {tool_name} with arguments: {tool_arguments}"
-            history.append(["bot", tool_metadata])
-            yield history
 
     # Stream the response character by character
     history.append(["Bot", ""])
