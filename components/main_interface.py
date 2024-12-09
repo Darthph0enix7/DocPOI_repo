@@ -64,7 +64,7 @@ tool = create_retriever_tool(
 )
 tools = [tool]
 memory = MemorySaver()
-system_prompt = "you are a helpful assistant that can provide information and context from documents, you can also help with summarization, translation, and more."
+system_prompt = "you are a helpful assistant that can provide information and context from documents, try to retrive relevant documents if you need spesific information, you can also help with summarization, translation, and more."
 agent_executor = create_react_agent(
     llm, tools, checkpointer=memory, state_modifier=system_prompt
 )
