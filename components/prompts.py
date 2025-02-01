@@ -1,3 +1,5 @@
+from langchain.chains.query_constructor.schema import AttributeInfo
+
 metadata_template = """
 You are tasked with extracting detailed metadata information from the content of a document. Follow these detailed guidelines to ensure the metadata is comprehensive and accurately reflects the document's content.
 
@@ -121,3 +123,94 @@ Provide only the new name in the following format with no filter or extra explan
 
 **Question**: {question}
 """
+
+metadata_field_info = [
+    AttributeInfo(
+        name="document_type",
+        description="Type of document (e.g., research paper, article, report).",
+        type="string",
+    ),
+    AttributeInfo(
+        name="mentions",
+        description="Main names (people, companies) mentioned in the document.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="keywords",
+        description="Keywords central to the document's topic.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="about",
+        description="Brief description of the document's purpose and findings.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="questions",
+        description="Questions the document can answer.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="entities",
+        description="Main entities (people, places, organizations) mentioned.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="authors",
+        description="The authors of the document.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="source",
+        description="Source or location of the document.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="language",
+        description="Language(s) the document is written in.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="audience",
+        description="Intended audience of the document.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="given_document_name",
+        description="The document's given name.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="document_id",
+        description="Unique identifier for the document (UUID).",
+        type="string",
+    ),
+    AttributeInfo(
+        name="file_directory",
+        description="Path of the document's directory.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="original_file_name",
+        description="The original name of the file.",
+        type="string",
+    ),
+    AttributeInfo(
+        name="file_creation_date",
+        description="Creation date of the document (ISO 8601).",
+        type="string",
+    ),
+    AttributeInfo(
+        name="file_modification_date",
+        description="Last modification date (ISO 8601).",
+        type="string",
+    ),
+    AttributeInfo(
+        name="metadata_creation_date",
+        description="Metadata creation date (ISO 8601).",
+        type="string",
+    ),
+]
+
+document_content_description = "Documents from the user, official documents, research papers, reports, articles, etc."
+

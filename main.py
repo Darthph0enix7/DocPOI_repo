@@ -1,69 +1,107 @@
-from fastapi import FastAPI, Request, Response, BackgroundTasks
-import gradio as gr
-import uvicorn
 import os
-import time
-import logging
-from components.setup_interface import setup_interface
-import asyncio
+import shutil
+import concurrent.futures
+from components.metadata_generation import generate_metadata_and_name
+from components.record_manager import (
+    initialize_vectorstore, 
+    add_folder_to_vectorstore, 
+    add_file_to_vectorstore, 
+    reset_vectorstore
+)
+from components.parsing import parse_document
+from langchain_ollama import ChatOllama
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-# Define function to check if setup is necessary
-def is_setup_needed():
-    # Check if the setup.flag file exists
-    return not os.path.exists("setup.flag")
+def copy_files_to_original(input_folder, original_docs_folder):
+    """
+    Copies files from input_folder to original_documents and returns a list of copied file paths.
+    """
+    os.makedirs(original_docs_folder, exist_ok=True)
+    new_files = []
 
-# Create FastAPI app instance
-app = FastAPI()
+    for file_name in os.listdir(input_folder):
+        file_path = os.path.join(input_folder, file_name)
+        if os.path.isfile(file_path):
+            dest_path = os.path.join(original_docs_folder, file_name)
+            shutil.copy(file_path, dest_path)
+            new_files.append(dest_path)  # Store full paths of copied files
 
-# Middleware to check if setup is necessary
-@app.middleware("http")
-async def check_setup_needed(request: Request, call_next):
-    logger.info(f"Received request: {request.url.path}")
-    if not is_setup_needed() and request.url.path.startswith("/setup"):
-        # If setup is not needed, forward requests from /setup to /main
-        logger.info("Setup not needed, redirecting to /main")
-        return Response(status_code=307, headers={"Location": "/main"})
-    response = await call_next(request)
-    return response
+    return new_files  # Return only newly copied files
 
-# Mount Gradio Setup Screen at "/setup"
-app = gr.mount_gradio_app(app, setup_interface, path="/setup")
 
-# Function to monitor the setup.flag file and reload the app
-async def monitor_setup_flag():
-    while is_setup_needed():
-        await asyncio.sleep(1)
-    logger.info("Setup complete, mounting main interface...")
-    from components.main_interface import main_interface_blocks
-    app.mount("/main", gr.mount_gradio_app(app, main_interface_blocks, path="/main"))
+def process_file(file_path, metadata_llm, naming_llm, max_tokens, base_dir, original_docs_folder):
+    """Processes a single file: Parses it, generates metadata, and renames it."""
+    
+    print(f"Processing {os.path.basename(file_path)}...")
 
-# Serve PDF files dynamically through FastAPI
-@app.get("/pdf")
-async def get_pdf(path: str):
-    if os.path.exists(path):
-        return Response(content=open(path, 'rb').read(), media_type='application/pdf')
-    else:
-        return Response(status_code=404, content="PDF not found")
+    # Step 1: Parse document into a text file
+    text_file_path = parse_document(file_path)
 
-# Define root route to handle redirection after setup
-@app.get("/")
-async def root(background_tasks: BackgroundTasks):
-    if is_setup_needed():
-        logger.info("Setup needed, redirecting to /setup")
-        background_tasks.add_task(monitor_setup_flag)
-        return Response(status_code=307, headers={"Location": "/setup"})
-    logger.info("Setup not needed, redirecting to /main")
-    return Response(status_code=307, headers={"Location": "/main"})
+    # Step 2: Generate metadata and rename file
+    document_name, metadata = generate_metadata_and_name(
+        text_file_path, metadata_llm, naming_llm, max_tokens, base_dir
+    )
+
+    # Step 3: Rename original file in 'original_documents'
+    new_original_path = os.path.join(original_docs_folder, f"{document_name}{os.path.splitext(file_path)[1]}")
+    os.rename(file_path, new_original_path)
+
+    return new_original_path  # Return for potential vector store processing
+
+
+def process_documents(input_folder, metadata_llm, naming_llm, max_tokens, vector_store, record_manager):
+    """
+    Processes only the files copied from input_folder, ignoring pre-existing documents in original_documents.
+    """
+
+    # Define base working directory (where main.py is located)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Define original documents directory
+    original_docs_folder = os.path.join(base_dir, "original_documents")
+
+    # Step 1: Copy files and get a list of newly copied files
+    new_file_paths = copy_files_to_original(input_folder, original_docs_folder)
+
+    if not new_file_paths:
+        print("No new files to process.")
+        return
+
+    # Step 2: Process only the newly copied files in parallel
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_file = {
+            executor.submit(process_file, file_path, metadata_llm, naming_llm, max_tokens, base_dir, original_docs_folder): file_path
+            for file_path in new_file_paths
+        }
+
+        processed_files = []
+        for future in concurrent.futures.as_completed(future_to_file):
+            try:
+                result = future.result()
+                if result:
+                    processed_files.append(result)
+            except Exception as e:
+                print(f"Error processing {future_to_file[future]}: {e}")
+
+    # Step 3: Add only processed files to the vector store
+    print("Adding newly processed documents to the vector store...")
+    for processed_file in processed_files:
+        add_file_to_vectorstore(processed_file, base_dir, vector_store, record_manager)
+
+    print("Processing complete.")
 
 if __name__ == "__main__":
-    if is_setup_needed():
-        logger.info("Starting server in setup mode...")
-    else:
-        from components.main_interface import main_interface_blocks
-        app = gr.mount_gradio_app(app, main_interface_blocks, path="/main")
-        logger.info("Starting server in main mode...")
-    uvicorn.run(app, host="127.0.0.1", port=7860)
+    # Define input folder
+    INPUT_FOLDER = "test_docs"
+
+    # Define LLM parameters (replace with actual model objects)
+    METADATA_LLM = ChatOllama(model="qwen2.5:7b", temperature=0.5, num_ctx=12000, num_predict=500)
+    NAMING_LLM = ChatOllama(model="qwen2.5:7b", temperature=0.7, num_ctx=12000, num_predict=20)
+    MAX_TOKENS = 1024
+
+    # Initialize vector store
+    vector_store, record_manager = initialize_vectorstore()
+
+    # Process only new documents
+    process_documents(INPUT_FOLDER, METADATA_LLM, NAMING_LLM, MAX_TOKENS, vector_store, record_manager)
