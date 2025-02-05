@@ -11,11 +11,11 @@ import json
 import os
 import uuid
 
-
+from components.record_manager import initialize_vectorstore
 
 # Define the LLM (Ollama)
 llm = ChatOllama(model="qwen2.5:7b", temperature=0.8, num_ctx=8000)
-
+vector_store, record_manager = initialize_vectorstore()
 
 class ChatAgent:
     def __init__(self, llm, system_prompt, tools, storage_dir="chat_logs"):

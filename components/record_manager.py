@@ -75,8 +75,6 @@ class DocPOIDirectoryLoader:
             ) for page_number, chunk in enumerate(chunks)
         ]
 
-
-
 class DocPOI:
     """Loads and processes a single text document along with its metadata."""
 
@@ -122,7 +120,6 @@ class DocPOI:
             else:
                 sanitized_metadata[key] = str(value)  # Convert other types to string
         return sanitized_metadata
-
 
 # --------------------------
 # Vectorstore Initialization
