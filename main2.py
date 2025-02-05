@@ -172,3 +172,10 @@ if __name__ == "__main__":
     tools = []  # Add PythonREPL tool
 
     agent = ChatAgent(llm, system_prompt, tools)
+
+    retriever = vector_store.as_retriever(
+        search_type="similarity", search_kwargs={"k": 1}
+    )
+    results = retriever.invoke("wie viel hat mein profesionalle zahnreinigung gekostet", filter=None)
+
+    print(results)
