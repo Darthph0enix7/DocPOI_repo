@@ -10,7 +10,7 @@ from langchain.indexes import SQLRecordManager, index
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_ollama import OllamaEmbeddings, ChatOllama
 
-embed_model = OllamaEmbeddings(model="qwen2.5:7b")
+embed_model = OllamaEmbeddings(model="jeffh/intfloat-multilingual-e5-large-instruct:f16")
 # Assuming you have an embedding model instance
 
 # --------------------------

@@ -8,14 +8,14 @@ from langchain_core.runnables import (
     RunnablePassthrough,
 )
 from langchain_ollama import OllamaEmbeddings, ChatOllama
-from components.prompts import document_content_description, metadata_field_info
+#from components.prompts import document_content_description, metadata_field_info
 from langchain.retrievers.self_query.base import SelfQueryRetriever
 
 from langchain_huggingface import HuggingFaceEmbeddings
 
-embeddings = OllamaEmbeddings(model="qwen2.5:7b")
+embeddings = OllamaEmbeddings(model="jeffh/intfloat-multilingual-e5-large-instruct:f16")
 
-llm = ChatOllama(model="qwen2.5:7b", temperature=0.8, num_ctx=12000)
+llm = ChatOllama(model="qwen2.5:14b", temperature=0.8, num_ctx=12000)
 
 vector_store = Chroma(
     collection_name="example_collection",
@@ -79,8 +79,11 @@ chain = (
     | llm
     | StrOutputParser()
 )
-response=chain.invoke("suggest me some films with a rating lower then 8.0?")
+#response=chain.invoke("suggest me some films with a rating lower then 8.0?")
+#print(response)
+#query = "suggest me a film with a higher rating then 8.3"
+#docs = vector_store.similarity_search_with_score(query)
+#print(docs)
+
+response = llm.invoke("suggest me a film with a higher rating then 8.3")
 print(response)
-query = "suggest me a film with a higher rating then 8.3"
-docs = vector_store.similarity_search_with_score(query)
-print(docs)
