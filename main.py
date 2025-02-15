@@ -11,7 +11,7 @@ from components.record_manager import (
 from components.parsing import parse_document
 from langchain_ollama import ChatOllama
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 def copy_files_to_original(input_folder, original_docs_folder):
     """
