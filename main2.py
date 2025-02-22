@@ -149,27 +149,27 @@ class ChatAgent:
 
 
 
-# Define input schema
-class SimpleInput(BaseModel):
-    task: str = Field(description="A simple task to complete.")
+class RetrieverInput(BaseModel):
+    query: str = Field(description="The query to retrieve documents for.")
+    k: int = Field(default=4, description="The number of documents to retrieve.")
 
-# Define the placeholder tool
-class SimpleTaskTool(BaseTool):
-    name: str = "simple_task"
-    description: str = "A simple tool that takes an input task and returns 'Completed'."
-    args_schema: Type[BaseModel] = SimpleInput
+class RetrieverTool(BaseTool):
+    name: str = "retriever_tool"
+    description: str = "A tool that retrieves document texts based on a query."
+    args_schema: Type[BaseModel] = RetrieverInput
     return_direct: bool = False
 
-    def _run(self, task: str) -> str:
-        """Returns 'Completed' for any given task."""
-        print(f"Task '{task}' completeddddddddddddddddd.")
-        return f"Task '{task}' completed."
+    def _run(self, query: str, k: int = 4) -> str:
+        """Retrieves document texts based on the query."""
+        retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
+        results = retriever.invoke(query, filter=None)
+        return results
 
 # Example usage with extensive testing
 if __name__ == "__main__":
-    system_prompt = "You are a helpful AI assistant that can execute python code and has access to wikipedia."
-    simple_tool = SimpleTaskTool()
-    tools = []  # Add PythonREPL tool
+    system_prompt = "You are a helpful AI assistant."
+    retriever_tool = RetrieverTool()
+    tools = [retriever_tool]  
 
     agent = ChatAgent(llm, system_prompt, tools)
 

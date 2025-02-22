@@ -9,8 +9,10 @@ from langchain_chroma import Chroma
 from langchain.indexes import SQLRecordManager, index
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_ollama import OllamaEmbeddings, ChatOllama
+from langchain_huggingface import HuggingFaceEmbeddings
 
-embed_model = OllamaEmbeddings(model="jeffh/intfloat-multilingual-e5-large-instruct:f16")
+
+embed_model = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-large")
 # Assuming you have an embedding model instance
 
 # --------------------------
@@ -155,13 +157,19 @@ def add_folder_to_vectorstore(directory_path: str, metadata_path: Optional[str] 
     loader = DocPOIDirectoryLoader(directory_path, metadata_path)
     documents = loader.load()
 
-    index(
-        documents,
-        record_manager,
-        vectorstore,
-        cleanup="incremental",
-        source_id_key="document_id",
-    )
+    print(f"Indexing {len(documents)} documents from {directory_path}...")
+
+    try:
+        index(
+            documents,
+            record_manager,
+            vectorstore,
+            cleanup="incremental",
+            source_id_key="document_id",
+        )
+    except Exception as e:
+        print(f"Error indexing documents: {e}")
+        raise
 
 
 def add_file_to_vectorstore(file_path: str, metadata_path: Optional[str] = None, vectorstore=None, record_manager=None):

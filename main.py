@@ -1,6 +1,6 @@
 import os
 import shutil
-import concurrent.futures
+import torch
 from components.metadata_generation import generate_metadata_and_name
 from components.record_manager import (
     initialize_vectorstore, 
@@ -30,24 +30,33 @@ def copy_files_to_original(input_folder, original_docs_folder):
     return new_files  # Return only newly copied files
 
 
-def process_file(file_path, metadata_llm, naming_llm, max_tokens, base_dir, original_docs_folder):
-    """Processes a single file: Parses it, generates metadata, and renames it."""
-    
-    print(f"Processing {os.path.basename(file_path)}...")
+def parse_files(file_paths):
+    """Parses all files and returns a list of text file paths."""
+    text_file_paths = []
+    for file_path in file_paths:
+        try:
+            text_file_path = parse_document(file_path)
+            text_file_paths.append(text_file_path)
+        except Exception as e:
+            print(f"Error parsing {file_path}: {e}")
+    return text_file_paths
 
-    # Step 1: Parse document into a text file
-    text_file_path = parse_document(file_path)
 
-    # Step 2: Generate metadata and rename file
-    document_name, metadata = generate_metadata_and_name(
-        text_file_path, metadata_llm, naming_llm, max_tokens, base_dir
-    )
-
-    # Step 3: Rename original file in 'original_documents'
-    new_original_path = os.path.join(original_docs_folder, f"{document_name}{os.path.splitext(file_path)[1]}")
-    os.rename(file_path, new_original_path)
-
-    return new_original_path  # Return for potential vector store processing
+def generate_metadata_and_rename_files(text_file_paths, metadata_llm, naming_llm, max_tokens, base_dir, original_docs_folder):
+    """Generates metadata and renames files based on parsed text files."""
+    processed_files = []
+    for text_file_path in text_file_paths:
+        try:
+            document_name, metadata = generate_metadata_and_name(
+                text_file_path, metadata_llm, naming_llm, max_tokens, base_dir
+            )
+            original_file_path = os.path.join(original_docs_folder, os.path.basename(text_file_path))
+            new_original_path = os.path.join(original_docs_folder, f"{document_name}{os.path.splitext(original_file_path)[1]}")
+            os.rename(original_file_path, new_original_path)
+            processed_files.append(new_original_path)
+        except Exception as e:
+            print(f"Error generating metadata for {text_file_path}: {e}")
+    return processed_files
 
 
 def process_documents(input_folder, metadata_llm, naming_llm, max_tokens, vector_store, record_manager):
@@ -68,23 +77,18 @@ def process_documents(input_folder, metadata_llm, naming_llm, max_tokens, vector
         print("No new files to process.")
         return
 
-    # Step 2: Process only the newly copied files in parallel
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_to_file = {
-            executor.submit(process_file, file_path, metadata_llm, naming_llm, max_tokens, base_dir, original_docs_folder): file_path
-            for file_path in new_file_paths
-        }
+    # Step 2: Parse all newly copied files
+    text_file_paths = parse_files(new_file_paths)
 
-        processed_files = []
-        for future in concurrent.futures.as_completed(future_to_file):
-            try:
-                result = future.result()
-                if result:
-                    processed_files.append(result)
-            except Exception as e:
-                print(f"Error processing {future_to_file[future]}: {e}")
+    # Free up GPU memory
+    torch.cuda.empty_cache()
 
-    # Step 3: Add only processed files to the vector store
+    # Step 3: Generate metadata and rename files
+    processed_files = generate_metadata_and_rename_files(
+        text_file_paths, metadata_llm, naming_llm, max_tokens, base_dir, original_docs_folder
+    )
+
+    # Step 4: Add only processed files to the vector store
     print("Adding newly processed documents to the vector store...")
     for processed_file in processed_files:
         add_file_to_vectorstore(processed_file, base_dir, vector_store, record_manager)

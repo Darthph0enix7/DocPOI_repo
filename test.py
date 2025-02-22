@@ -1,27 +1,18 @@
-import subprocess
-import os
-import sys
-
-# Set CUDA environment for the subprocess
-env = os.environ.copy()
-env["CUDA_VISIBLE_DEVICES"] = "0"
-
-# Ensure compatibility for Windows & Linux
-creation_flags = 0
-if sys.platform == "win32":
-    creation_flags = subprocess.CREATE_NO_WINDOW  # Prevents opening a new terminal window
-
-# Run the process in the background **without logs**
-subprocess.Popen(
-    ["ollama", "serve"],
-    stdout=subprocess.DEVNULL,  # No logs
-    stderr=subprocess.DEVNULL,  # No error messages
-    stdin=subprocess.DEVNULL,   # Prevents user input
-    env=env,  # Pass CUDA environment
-    shell=True if sys.platform == "win32" else False,  # Needed for Windows
-    creationflags=creation_flags if sys.platform == "win32" else 0,
-    start_new_session=True if sys.platform != "win32" else False  # Detach from parent
+from components.record_manager import (
+    initialize_vectorstore, 
+    add_file_to_vectorstore, 
+    reset_vectorstore
 )
+import os
 
-# Python exits, but the server keeps running
-print("Server started in the background.")
+# Initialize vector store
+vector_store, record_manager = initialize_vectorstore()
+
+# Define file paths
+file_path = "documents\Bescheinigung_Kalinsazlioglu_Schwalm-Eder_2023.txt"
+metadata_path = "metadata\Bescheinigung_Kalinsazlioglu_Schwalm-Eder_2023.json"
+
+# Add file to vector store
+add_file_to_vectorstore(file_path, metadata_path, vector_store, record_manager)
+
+print("File and metadata have been added to the vector store.")
