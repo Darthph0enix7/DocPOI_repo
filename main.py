@@ -30,13 +30,16 @@ def copy_files_to_original(input_folder, original_docs_folder):
     return new_files  # Return only newly copied files
 
 
-def parse_files(file_paths):
+def parse_files(file_paths, documents_folder):
     """Parses all files and returns a list of text file paths."""
     text_file_paths = []
+    os.makedirs(documents_folder, exist_ok=True)
     for file_path in file_paths:
         try:
             text_file_path = parse_document(file_path)
-            text_file_paths.append(text_file_path)
+            dest_path = os.path.join(documents_folder, os.path.basename(text_file_path))
+            shutil.move(text_file_path, dest_path)
+            text_file_paths.append(dest_path)
         except Exception as e:
             print(f"Error parsing {file_path}: {e}")
     return text_file_paths
@@ -70,6 +73,9 @@ def process_documents(input_folder, metadata_llm, naming_llm, max_tokens, vector
     # Define original documents directory
     original_docs_folder = os.path.join(base_dir, "original_documents")
 
+    # Define documents directory for parsed text files
+    documents_folder = os.path.join(base_dir, "documents")
+
     # Step 1: Copy files and get a list of newly copied files
     new_file_paths = copy_files_to_original(input_folder, original_docs_folder)
 
@@ -78,7 +84,7 @@ def process_documents(input_folder, metadata_llm, naming_llm, max_tokens, vector
         return
 
     # Step 2: Parse all newly copied files
-    text_file_paths = parse_files(new_file_paths)
+    text_file_paths = parse_files(new_file_paths, documents_folder)
 
     # Free up GPU memory
     torch.cuda.empty_cache()
@@ -100,8 +106,8 @@ if __name__ == "__main__":
     INPUT_FOLDER = "test_docs"
 
     # Define LLM parameters (replace with actual model objects)
-    METADATA_LLM = ChatOllama(model="qwen2.5:7b", temperature=0.5, num_ctx=12000, num_predict=500)
-    NAMING_LLM = ChatOllama(model="qwen2.5:7b", temperature=0.7, num_ctx=12000, num_predict=20)
+    METADATA_LLM = ChatOllama(model="qwen2.5:7b", temperature=0.5, num_ctx=8000, num_predict=500)
+    NAMING_LLM = ChatOllama(model="qwen2.5:7b", temperature=0.7, num_ctx=8000, num_predict=40)
     MAX_TOKENS = 1024
 
     # Initialize vector store
