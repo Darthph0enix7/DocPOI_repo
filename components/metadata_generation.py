@@ -140,4 +140,4 @@ def generate_metadata_and_name(file_path, metadata_llm, naming_llm, max_tokens, 
     new_file_path = os.path.join(documents_folder, f"{document_name}.txt")
     os.rename(file_path, new_file_path)
 
-    return document_name, formatted_metadata
+    return document_name, formatted_metadata, metadata_file_path, new_file_path
