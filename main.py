@@ -14,7 +14,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 def copy_files_to_tmp(input_folder, tmp_folder):
-    """Copies files from input folder to a temporary directory and returns a list of copied file paths."""
+    """Copies files from input_folder to tmp_folder and returns a list of copied file paths."""
     os.makedirs(tmp_folder, exist_ok=True)
     copied_files = []
 
@@ -37,6 +37,10 @@ def parse_documents(files, output_folder):
     for file in files:
         try:
             parsed_file = parse_document(file)
+            if not parsed_file or not os.path.exists(parsed_file):
+                print(f"Error: Parsing failed for {file}. Skipping.")
+                continue
+
             dest_path = os.path.join(output_folder, os.path.basename(parsed_file))
             shutil.move(parsed_file, dest_path)
             parsed_files.append(dest_path)
@@ -46,9 +50,10 @@ def parse_documents(files, output_folder):
     return parsed_files
 
 
-def generate_metadata_and_rename(parsed_files, metadata_llm, naming_llm, max_tokens, base_dir, tmp_folder):
-    """Generates metadata, renames files accordingly, and returns a list of processed file paths."""
-    processed_files = []
+def generate_metadata_and_rename(parsed_files, metadata_llm, naming_llm, max_tokens, base_dir):
+    """Generates metadata, renames parsed text files accordingly, and returns updated paths."""
+    updated_text_files = []
+    metadata_files = []
 
     for parsed_file in parsed_files:
         try:
@@ -56,31 +61,47 @@ def generate_metadata_and_rename(parsed_files, metadata_llm, naming_llm, max_tok
                 parsed_file, metadata_llm, naming_llm, max_tokens, base_dir
             )
 
-            original_file = os.path.join(tmp_folder, os.path.splitext(os.path.basename(parsed_file))[0])
-            new_original_file = os.path.join(tmp_folder, f"{new_name}{os.path.splitext(original_file)[1]}")
+            # Ensure parsed text file gets renamed
+            new_text_file_path = os.path.join(os.path.dirname(parsed_file), f"{new_name}.txt")
+            os.rename(parsed_file, new_text_file_path)
 
-            if os.path.exists(original_file):
-                os.rename(original_file, new_original_file)
+            # Store updated file paths
+            updated_text_files.append(new_text_file_path)
+            metadata_files.append(metadata_file)
 
-            processed_files.append(new_original_file)
         except Exception as e:
             print(f"Error generating metadata for {parsed_file}: {e}")
 
-    return processed_files
+    return updated_text_files, metadata_files
 
 
-def move_processed_files(processed_files, parsed_files, metadata_folder, documents_folder, originals_folder):
-    """Moves processed files to their respective directories."""
+def move_processed_files(updated_text_files, metadata_files, metadata_folder, documents_folder):
+    """Moves processed text and metadata files to their respective directories."""
     os.makedirs(metadata_folder, exist_ok=True)
     os.makedirs(documents_folder, exist_ok=True)
-    os.makedirs(originals_folder, exist_ok=True)
 
-    for processed_file, parsed_file in zip(processed_files, parsed_files):
+    for text_file, metadata_file in zip(updated_text_files, metadata_files):
         try:
-            shutil.move(processed_file, originals_folder)
-            shutil.move(parsed_file, documents_folder)
+            if os.path.exists(text_file):
+                shutil.move(text_file, documents_folder)  # Move parsed text document
+            else:
+                print(f"Warning: {text_file} does not exist, skipping move.")
+
+            if os.path.exists(metadata_file):
+                shutil.move(metadata_file, metadata_folder)  # Move metadata file
+            else:
+                print(f"Warning: {metadata_file} does not exist, skipping move.")
+
         except Exception as e:
             print(f"Error moving files: {e}")
+
+
+def clean_tmp_folder(tmp_folder):
+    """Deletes the temporary folder after processing is complete."""
+    try:
+        shutil.rmtree(tmp_folder)
+    except Exception as e:
+        print(f"Error deleting tmp folder: {e}")
 
 
 def process_documents(input_folder, metadata_llm, naming_llm, max_tokens, vector_store, record_manager):
@@ -89,9 +110,8 @@ def process_documents(input_folder, metadata_llm, naming_llm, max_tokens, vector
     tmp_folder = os.path.join(base_dir, "tmp")
     documents_folder = os.path.join(base_dir, "documents")
     metadata_folder = os.path.join(base_dir, "metadata")
-    originals_folder = os.path.join(base_dir, "original_documents")
 
-    # Step 1: Copy files to temp folder
+    # Step 1: Copy files to tmp folder
     copied_files = copy_files_to_tmp(input_folder, tmp_folder)
     if not copied_files:
         print("No new files found.")
@@ -104,15 +124,19 @@ def process_documents(input_folder, metadata_llm, naming_llm, max_tokens, vector
     torch.cuda.empty_cache()
 
     # Step 3: Generate metadata and rename files
-    processed_files = generate_metadata_and_rename(parsed_files, metadata_llm, naming_llm, max_tokens, base_dir, tmp_folder)
+    updated_text_files, metadata_files = generate_metadata_and_rename(parsed_files, metadata_llm, naming_llm, max_tokens, base_dir)
 
-    # Step 4: Move processed files to their respective directories
-    move_processed_files(processed_files, parsed_files, metadata_folder, documents_folder, originals_folder)
+    # Step 4: Move parsed text files and metadata to their respective directories
+    move_processed_files(updated_text_files, metadata_files, metadata_folder, documents_folder)
 
-    # Step 5: Add processed files to vector store
+    # Step 5: Add processed files and metadata to vector store (ONLY from `documents/` and `metadata/`)
     print("Adding processed files to vector store...")
-    for file in processed_files:
-        add_file_to_vectorstore(file, base_dir, vector_store, record_manager)
+    for text_file in updated_text_files:
+        metadata_file = os.path.join(metadata_folder, os.path.basename(text_file).replace('.txt', '.json'))
+        add_file_to_vectorstore(text_file, metadata_file, vector_store, record_manager)
+
+    # Step 6: Clean up temporary folder
+    clean_tmp_folder(tmp_folder)
 
     print("Processing complete.")
 

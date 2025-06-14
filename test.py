@@ -9,8 +9,8 @@ import os
 vector_store, record_manager = initialize_vectorstore()
 
 # Define file paths
-file_path = "documents\Bescheinigung_Kalinsazlioglu_Schwalm-Eder_2023.txt"
-metadata_path = "metadata\Bescheinigung_Kalinsazlioglu_Schwalm-Eder_2023.json"
+file_path = "documents\Bescheinigung_SGBII_KalinsazliogluSchwalmEder_2023.txt"
+metadata_path = "metadata\Bescheinigung_SGBII_KalinsazliogluSchwalmEder_2023.json"
 
 # Add file to vector store
 add_file_to_vectorstore(file_path, metadata_path, vector_store, record_manager)
